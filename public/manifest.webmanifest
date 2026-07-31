@@ -1,0 +1,9 @@
+{
+  "name": "Event Ticketing Check-in",
+  "short_name": "Check-in",
+  "description": "Staff ticket check-in scanner",
+  "start_url": "/check-in/scan",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a"
+}

@@ -1,0 +1,2 @@
+# TypeORM migrations are generated here.
+# Production runs migrations only; schema synchronize is disabled everywhere.

@@ -1,0 +1,2 @@
+# TypeORM entities are added here from Phase 2 onwards
+# (StaffUser, Event, Zone, Seat, TicketType, Order, OrderItem, Payment, Ticket, ...).
