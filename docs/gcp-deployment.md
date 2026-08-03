@@ -327,6 +327,16 @@ Armor is about edge/IP-level abuse, not login protection.
 - If the plan ever changes to a **single high-demand on-sale**, a virtual
   waiting room / queue would be needed — not built, flag to the developer.
 
+### Concurrency tuning knobs (validate under load test)
+
+- **Seat-lock window** — `src/services/order.service.ts` (`seatLockLimit`,
+  `SEAT_LOCK_MIN` / `SEAT_LOCK_MAX`). Each checkout locks this many available
+  seat rows with `FOR UPDATE SKIP LOCKED`. Default is `quantity × 4`, clamped
+  40–200. Trade-off: **smaller** = more concurrent buyers per zone; **larger** =
+  better chance of seating a group contiguously. If the load test shows false
+  "not enough seats" under concurrency on a hot/small zone (e.g. VIP), lower it;
+  if groups rarely get adjacent seats, raise it.
+
 ---
 
 ## 16. Cloud Storage (optional — not required for v1)

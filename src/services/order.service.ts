@@ -47,10 +47,18 @@ export interface ReservationResult {
   itemName: string;
 }
 
-// How many available seats to lock as a working window when allocating. Large
-// enough to find a contiguous block, bounded so concurrent buyers don't lock
-// the whole zone.
-const LOCK_WINDOW = 1000;
+// How many available seats to lock per checkout via FOR UPDATE SKIP LOCKED.
+// Small enough that many buyers can hold different seats in the SAME zone at
+// once — a large window makes one in-flight checkout lock most of a zone's
+// available rows, so concurrent buyers falsely get "not enough seats" (worst on
+// small/hot zones like VIP). But large enough to still find a contiguous run
+// for the order. Previously a flat 1000. Tunable; validate under load test.
+const SEAT_LOCK_MIN = 40;
+const SEAT_LOCK_MAX = 200;
+
+function seatLockLimit(quantity: number): number {
+  return Math.min(Math.max(quantity * 4, SEAT_LOCK_MIN), SEAT_LOCK_MAX);
+}
 
 /** Release seats held by pending orders that have expired, for one event. */
 async function releaseExpiredHoldsForEvent(
@@ -122,7 +130,7 @@ export async function createReservation(
         ORDER BY row_label ASC, seat_number ASC
         FOR UPDATE SKIP LOCKED
         LIMIT $2`,
-      [zone.id, Math.max(qty, LOCK_WINDOW)],
+      [zone.id, seatLockLimit(qty)],
     );
 
     const chosen = chooseContiguousSeats(locked, qty);

@@ -137,7 +137,9 @@ Set for all routes in `next.config.mjs → headers()`:
 
 - Seat reservation locks candidate seats with `SELECT … FOR UPDATE SKIP LOCKED`
   in a single transaction — two buyers can never get the same seat
-  (`src/services/order.service.ts`).
+  (`src/services/order.service.ts`). The number of rows locked per checkout is a
+  bounded, tunable window (`seatLockLimit`) to avoid falsely rejecting concurrent
+  buyers — see the concurrency-tuning note in `docs/gcp-deployment.md` §15.
 - Check-in is an atomic `UPDATE … WHERE status='VALID'` verified via
   `UpdateResult.affected`, so a ticket can be admitted only once
   (`src/services/check-in.service.ts`).
