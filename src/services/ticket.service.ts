@@ -93,6 +93,9 @@ export async function getTicketByPublicToken(
 }
 
 export interface OrderTicketSummary {
+  ticketId: string;
+  eventId: string;
+  qrTokenId: string;
   publicToken: string;
   ticketNumber: string;
   seatLabel: string;
@@ -105,13 +108,17 @@ export async function getTicketSummariesForOrder(
 ): Promise<OrderTicketSummary[]> {
   const ds = await getDataSource();
   const rows: Array<{
+    id: string;
+    event_id: string;
+    qr_token_id: string;
     public_token: string;
     ticket_number: string;
     row_label: string;
     seat_number: number;
     zone_name: string;
   }> = await ds.query(
-    `SELECT t.public_token, t.ticket_number, s.row_label, s.seat_number, z.name AS zone_name
+    `SELECT t.id, t.event_id, t.qr_token_id, t.public_token, t.ticket_number,
+            s.row_label, s.seat_number, z.name AS zone_name
        FROM tickets t
        JOIN seats s ON s.id = t.seat_id
        JOIN zones z ON z.id = t.zone_id
@@ -120,6 +127,9 @@ export async function getTicketSummariesForOrder(
     [orderId],
   );
   return rows.map((r) => ({
+    ticketId: r.id,
+    eventId: r.event_id,
+    qrTokenId: r.qr_token_id,
     publicToken: r.public_token,
     ticketNumber: r.ticket_number,
     seatLabel: `${r.row_label}${r.seat_number}`,

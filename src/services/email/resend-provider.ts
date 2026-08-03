@@ -28,6 +28,12 @@ export class ResendEmailProvider implements EmailProvider {
         subject: input.subject,
         html: input.html,
         text: input.text,
+        attachments: input.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          content_id: a.contentId,
+          content_type: a.contentType,
+        })),
       }),
     });
 

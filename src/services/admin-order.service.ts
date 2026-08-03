@@ -216,7 +216,7 @@ export async function refundOrder(
 export async function resendConfirmation(
   orderId: string,
   staffUserId: string,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await sendOrderConfirmation(orderId);
     await writeAudit({
@@ -227,10 +227,8 @@ export async function resendConfirmation(
     });
     return { ok: true };
   } catch (error) {
-    logger.error("Resend confirmation failed", {
-      orderId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { ok: false };
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Resend confirmation failed", { orderId, error: message });
+    return { ok: false, error: message };
   }
 }

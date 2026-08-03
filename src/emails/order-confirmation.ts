@@ -57,7 +57,8 @@ export function renderOrderConfirmationEmail(data: OrderConfirmationData): {
   const ticketBlocks = tickets
     .map((t) => {
       const ticketUrl = `${baseUrl}/ticket/${t.publicToken}`;
-      const qrUrl = `${baseUrl}/api/tickets/${t.publicToken}/qr`;
+      // Inline image embedded as a CID attachment (see email.service).
+      const qrUrl = `cid:qr-${t.ticketNumber}`;
       return `
       <table role="presentation" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;margin:12px 0;">
         <tr>

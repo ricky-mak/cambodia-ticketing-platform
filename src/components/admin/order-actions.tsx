@@ -33,7 +33,8 @@ export function OrderActions({
         );
         router.refresh();
       } else {
-        setMessage(data.reason ? `Failed: ${data.reason}` : "Action failed.");
+        const reason = data.error ?? data.reason;
+        setMessage(reason ? `Failed: ${reason}` : "Action failed.");
       }
     } finally {
       setBusy(null);

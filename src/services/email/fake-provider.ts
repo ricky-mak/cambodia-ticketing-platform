@@ -16,7 +16,15 @@ export class FakeEmailProvider implements EmailProvider {
       fs.mkdirSync(dir, { recursive: true });
       const safeTo = input.to.replace(/[^a-z0-9]/gi, "_");
       const file = path.join(dir, `${Date.now()}-${safeTo}.html`);
-      fs.writeFileSync(file, input.html, "utf8");
+      // Inline any cid: images as data URIs so the local preview renders them.
+      let html = input.html;
+      for (const a of input.attachments ?? []) {
+        if (a.contentId) {
+          const dataUri = `data:${a.contentType ?? "application/octet-stream"};base64,${a.content}`;
+          html = html.split(`cid:${a.contentId}`).join(dataUri);
+        }
+      }
+      fs.writeFileSync(file, html, "utf8");
       logger.info("FakeEmailProvider wrote email preview", {
         to: input.to,
         subject: input.subject,
