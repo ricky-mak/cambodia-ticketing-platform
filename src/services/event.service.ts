@@ -19,6 +19,8 @@ export interface EventInput {
   salesEndAt?: Date | null;
   currency?: string;
   reservationMinutes?: number;
+  maxPendingPerEmail?: number;
+  maxPendingPerIp?: number;
 }
 
 /** This is a single-event system: the "primary" event is the earliest one. */

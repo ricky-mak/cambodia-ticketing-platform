@@ -24,6 +24,8 @@ export interface EventFormValues {
   salesStartAt: string;
   salesEndAt: string;
   reservationMinutes: number;
+  maxPendingPerEmail: number;
+  maxPendingPerIp: number;
   refundPolicy: string;
   terms: string;
 }
@@ -97,6 +99,22 @@ export function EventForm({ initial }: { initial: EventFormValues }) {
             min={1}
             max={240}
             {...register("reservationMinutes", { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Max pending orders / email">
+          <Input
+            type="number"
+            min={1}
+            max={50}
+            {...register("maxPendingPerEmail", { valueAsNumber: true })}
+          />
+        </Field>
+        <Field label="Max pending orders / IP">
+          <Input
+            type="number"
+            min={1}
+            max={1000}
+            {...register("maxPendingPerIp", { valueAsNumber: true })}
           />
         </Field>
         <Field label="Contact email">

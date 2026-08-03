@@ -16,7 +16,8 @@ export type ReservationErrorCode =
   | "SALES_CLOSED"
   | "ZONE_UNAVAILABLE"
   | "INVALID_QUANTITY"
-  | "INSUFFICIENT_SEATS";
+  | "INSUFFICIENT_SEATS"
+  | "TOO_MANY_PENDING";
 
 export class ReservationError extends Error {
   code: ReservationErrorCode;
@@ -33,6 +34,7 @@ export interface CreateReservationInput {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  ipAddress?: string | null;
 }
 
 export interface ReservationResult {
@@ -58,6 +60,11 @@ const SEAT_LOCK_MAX = 200;
 function seatLockLimit(quantity: number): number {
   return Math.min(Math.max(quantity * 4, SEAT_LOCK_MIN), SEAT_LOCK_MAX);
 }
+
+// Pending-order caps are configured per event (events.max_pending_per_email /
+// max_pending_per_ip, editable in Admin → Event); these are fallback defaults.
+const DEFAULT_MAX_PENDING_PER_EMAIL = 3;
+const DEFAULT_MAX_PENDING_PER_IP = 20;
 
 /**
  * Create a pending order and reserve seats for it, atomically. Prevents
@@ -92,6 +99,40 @@ export async function createReservation(
   const reservationMs = (event.reservationMinutes ?? 10) * 60_000;
   const ds = await getDataSource();
 
+  // Inventory-lockup guard: cap concurrent ACTIVE unpaid holds, scoped to THIS
+  // event (so a busy event doesn't block a buyer at another). Expired-pending
+  // orders don't count (they'll be swept). Caps are per-event settings.
+  // Best-effort (a small TOCTOU race is fine for an abuse cap).
+  const emailCap = event.maxPendingPerEmail ?? DEFAULT_MAX_PENDING_PER_EMAIL;
+  const ipCap = event.maxPendingPerIp ?? DEFAULT_MAX_PENDING_PER_IP;
+  const email = input.customerEmail.trim().toLowerCase();
+  const emailPending: Array<{ n: number }> = await ds.query(
+    `SELECT count(*)::int AS n FROM orders
+      WHERE event_id = $1 AND customer_email = $2 AND status = 'PENDING'
+        AND reservation_expires_at > now()`,
+    [event.id, email],
+  );
+  if ((emailPending[0]?.n ?? 0) >= emailCap) {
+    throw new ReservationError(
+      "TOO_MANY_PENDING",
+      "You already have pending orders. Complete payment or wait for them to expire before starting another.",
+    );
+  }
+  if (input.ipAddress) {
+    const ipPending: Array<{ n: number }> = await ds.query(
+      `SELECT count(*)::int AS n FROM orders
+        WHERE event_id = $1 AND ip_address = $2 AND status = 'PENDING'
+          AND reservation_expires_at > now()`,
+      [event.id, input.ipAddress],
+    );
+    if ((ipPending[0]?.n ?? 0) >= ipCap) {
+      throw new ReservationError(
+        "TOO_MANY_PENDING",
+        "Too many pending orders from your network right now. Please try again shortly.",
+      );
+    }
+  }
+
   const result = await ds.transaction(async (manager) => {
     // Note: expired holds are reclaimed by the scheduled sweep
     // (releaseExpiredHolds via /api/internal/orders/sweep-expired), not inline
@@ -125,8 +166,9 @@ export async function createReservation(
       orderNumber: generateOrderNumber(),
       publicToken: generatePublicToken(),
       customerName: input.customerName.trim(),
-      customerEmail: input.customerEmail.trim().toLowerCase(),
+      customerEmail: email,
       customerPhone: input.customerPhone.trim(),
+      ipAddress: input.ipAddress ?? null,
       currency: zone.currency,
       subtotalMinor: totalPrice,
       totalMinor: totalPrice,

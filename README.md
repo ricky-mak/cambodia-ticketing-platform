@@ -282,7 +282,8 @@ the schema is structured so the real PayWay refund API can be wired in later.
 
 ## Security hardening (Phase 10)
 
-Run `yarn migration:run` (adds login-lockout columns to `staff_users`). Added in code:
+Run `yarn migration:run` (adds login-lockout columns to `staff_users`, and an
+`ip_address` column + indexes to `orders`). Added in code:
 
 - **Rate limiting** (`src/lib/rate-limit.ts`) on `POST /api/auth/login` (brute
   force), `/api/checkout` (abuse), `/api/tickets/validate` + `/check-in`
@@ -295,6 +296,11 @@ Run `yarn migration:run` (adds login-lockout columns to `staff_users`). Added in
   minutes (DB-backed, so global regardless of instances; returns HTTP 423). An
   admin can reset the password or re-enable the account to clear it early. This
   is the primary brute-force defense, alongside Argon2id's slow hashing.
+- **Pending-order cap** — concurrent unpaid holds are capped per email and per
+  IP (event-scoped) so no one can tie up seat inventory for free (HTTP 429). The
+  caps are **per-event** (Admin → Event; defaults 3 / 20, IP generous for shared
+  NAT). This is the real inventory-lockup control; the rate limit and Cloud
+  Armor cover the rest.
 - **Security headers + CSP** (`next.config.mjs → headers()`): CSP, HSTS (prod
   only), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, and
   `Permissions-Policy: camera=(self)` (needed by the scanner). The CSP allows

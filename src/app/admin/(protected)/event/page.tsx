@@ -31,6 +31,8 @@ export default async function EventSettingsPage() {
     salesStartAt: toDateTimeLocal(event?.salesStartAt),
     salesEndAt: toDateTimeLocal(event?.salesEndAt),
     reservationMinutes: event?.reservationMinutes ?? 10,
+    maxPendingPerEmail: event?.maxPendingPerEmail ?? 3,
+    maxPendingPerIp: event?.maxPendingPerIp ?? 20,
     refundPolicy: event?.refundPolicy ?? "",
     terms: event?.terms ?? "",
   };

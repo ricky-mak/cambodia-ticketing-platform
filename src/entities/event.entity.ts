@@ -67,6 +67,13 @@ export class Event {
   @Column({ name: "reservation_minutes", type: "integer", default: 10 })
   reservationMinutes!: number;
 
+  // Inventory-lockup caps: max concurrent active unpaid orders per email / IP.
+  @Column({ name: "max_pending_per_email", type: "integer", default: 3 })
+  maxPendingPerEmail!: number;
+
+  @Column({ name: "max_pending_per_ip", type: "integer", default: 20 })
+  maxPendingPerIp!: number;
+
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
 

@@ -336,6 +336,14 @@ Armor is about edge/IP-level abuse, not login protection.
   better chance of seating a group contiguously. If the load test shows false
   "not enough seats" under concurrency on a hot/small zone (e.g. VIP), lower it;
   if groups rarely get adjacent seats, raise it.
+- **Pending-order caps** — **per-event settings** (`events.max_pending_per_email`
+  default 3, `events.max_pending_per_ip` default 20), editable in Admin → Event;
+  code fallback in `src/services/order.service.ts`. Cap concurrent unpaid holds
+  (event-scoped) to prevent inventory lockup. Keep the **per-IP** cap generous:
+  shared NAT (office/venue wifi, mobile carriers) puts many legitimate buyers
+  behind one IP, so too low a value would block real customers. If real buyers
+  on shared networks get blocked, raise the IP cap for that event (or rely on
+  the email cap + Cloud Armor).
 
 ---
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isSameOrigin } from "@/lib/http";
+import { isSameOrigin, clientIp } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { createReservation, ReservationError } from "@/services/order.service";
 import { initiateCheckout } from "@/services/payment.service";
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       customerName: parsed.data.customerName,
       customerEmail: parsed.data.customerEmail,
       customerPhone: parsed.data.customerPhone,
+      ipAddress: clientIp(request),
     });
 
     const base = process.env.APPLICATION_BASE_URL ?? new URL(request.url).origin;
@@ -67,10 +68,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof ReservationError) {
-      // 409 for availability/sales issues the customer can react to.
+      // 429 for the abuse cap; 409 for availability/sales issues.
+      const status = error.code === "TOO_MANY_PENDING" ? 429 : 409;
       return NextResponse.json(
         { error: error.message, code: error.code },
-        { status: 409 },
+        { status },
       );
     }
     return NextResponse.json(

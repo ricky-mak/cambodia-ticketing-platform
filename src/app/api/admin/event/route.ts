@@ -34,6 +34,8 @@ const bodySchema = z.object({
   salesEndAt: nullableString,
   currency: z.string().trim().length(3).optional(),
   reservationMinutes: z.number().int().min(1).max(240).optional(),
+  maxPendingPerEmail: z.number().int().min(1).max(50).optional(),
+  maxPendingPerIp: z.number().int().min(1).max(1000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -78,6 +80,8 @@ export async function POST(request: Request) {
     salesEndAt: fromDateTimeLocal(d.salesEndAt),
     currency: d.currency ?? "USD",
     reservationMinutes: d.reservationMinutes,
+    maxPendingPerEmail: d.maxPendingPerEmail,
+    maxPendingPerIp: d.maxPendingPerIp,
   };
 
   try {

@@ -35,6 +35,10 @@ export class Order {
   @Column({ name: "customer_phone", type: "varchar", length: 64 })
   customerPhone!: string;
 
+  // Buyer IP at reservation time (for the pending-order abuse cap / auditing).
+  @Column({ name: "ip_address", type: "varchar", length: 64, nullable: true })
+  ipAddress!: string | null;
+
   @Column({ type: "varchar", length: 3, default: "USD" })
   currency!: string;
 

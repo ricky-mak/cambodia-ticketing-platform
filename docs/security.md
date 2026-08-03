@@ -58,6 +58,18 @@ brute-force defense — combined with Argon2id's deliberately slow hashing,
 password guessing is impractical. (Trade-off: a known email can be locked by an
 attacker; the 15-min window and admin recovery path keep this low-impact.)
 
+**Pending-order cap** (`src/services/order.service.ts`) — each checkout holds
+seats for the reservation window *without* payment, so an actor could tie up
+inventory for free. Concurrent **active** unpaid orders are capped per **email**
+and per **IP**, **scoped to the event** (a busy event doesn't block a buyer at
+another). The caps are **per-event settings** (`events.max_pending_per_email` /
+`max_pending_per_ip`, editable in Admin → Event; defaults 3 and 20 — the IP cap
+is generous because shared NAT legitimately puts many real buyers behind one
+IP). Expired-pending orders don't count (they'll be swept). Over the cap returns
+HTTP 429. This is the meaningful control against inventory lockup — a rate limit
+alone doesn't stop it, and rotating IPs walk past per-IP limits — so it
+complements the checkout rate limiter and edge Cloud Armor.
+
 > **Limitation:** the *IP* limiter is **in-memory / per-instance** (no Redis, per
 > project constraints). On Cloud Run with N instances the effective per-IP limit
 > is ~limit × N. It's a solid basic guard; the account lockout above is the
