@@ -99,6 +99,7 @@ Set for all routes in `next.config.mjs → headers()`:
 
 - `default-src 'self'`, `base-uri 'self'`, `object-src 'none'` — baseline lockdown.
 - `frame-ancestors 'none'` — the site can't be embedded in an iframe.
+- `frame-src 'self'` — only same-origin frames may be embedded by our pages.
 - `img-src 'self' data: blob: https:` — QR PNGs, inline data URIs, camera frames.
 - `script-src 'self' 'unsafe-inline' blob:` (+ `'unsafe-eval'` in dev only) —
   runs only our JS; `blob:` for the QR-scanner worker.

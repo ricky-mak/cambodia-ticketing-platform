@@ -242,9 +242,11 @@ Header:  x-internal-secret: <INTERNAL_API_SECRET value>
 > OIDC token — flag it to the app developer. For v1 the shared-secret header is
 > the supported mechanism.
 
-Per-order Cloud Tasks (`/orders/{id}/expire`) are optional and currently a
-no-op in code; the minute-ly sweep fully covers expiry, so Cloud Tasks is not
-required for v1.
+Per-order Cloud Tasks are optional: the `POST /orders/{id}/expire` endpoint
+itself works (it releases the seats and marks the order EXPIRED), but the code
+that would *schedule* a per-order task (`scheduleOrderExpiration`) is a no-op —
+Cloud Tasks scheduling isn't wired. The minute-ly sweep fully covers expiry, so
+Cloud Tasks is not required for v1.
 
 ---
 

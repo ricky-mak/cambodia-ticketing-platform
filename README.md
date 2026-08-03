@@ -282,8 +282,12 @@ the schema is structured so the real PayWay refund API can be wired in later.
 
 ## Security hardening (Phase 10)
 
-Run `yarn migration:run` (adds login-lockout columns to `staff_users`, and an
-`ip_address` column + indexes to `orders`). Added in code:
+Run `yarn migration:run`. The hardening migrations add: login-lockout columns
+to `staff_users`; an `ip_address` column + indexes to `orders`; the per-event
+pending-order caps (`events.max_pending_per_email` / `max_pending_per_ip`); and
+the `pg_trgm` extension + GIN trigram indexes that back the check-in/attendee
+search. (The `pg_trgm` step needs create-extension rights on the DB role — see
+`docs/gcp-deployment.md` §9.) Added in code:
 
 - **Rate limiting** (`src/lib/rate-limit.ts`) on `POST /api/auth/login` (brute
   force), `/api/checkout` (abuse), `/api/tickets/validate` + `/check-in`
@@ -346,38 +350,58 @@ Secrets are validated lazily at runtime (`src/lib/env.ts`) so builds don't
 require them. In production they come from Google Secret Manager, never from
 `NEXT_PUBLIC_*` variables.
 
-## Project layout (so far)
+## Project layout
 
 ```text
 src/
   app/
+    page.tsx, layout.tsx, globals.css   # public event landing
+    checkout/                 # reserve seats -> create order
+    order/[token]/            # order status + pay (public_token URL)
+    ticket/[token]/           # scannable ticket page
+    dev/                      # dev-only fake-pay helper
     admin/
       login/page.tsx          # staff sign-in
-      (protected)/            # requires ADMIN/MANAGER
+      (protected)/            # requires ADMIN/MANAGER (guarded in layout)
         layout.tsx            # server-side auth guard + shell
-        dashboard/page.tsx
+        dashboard/ orders/ attendees/ staff/ event/ zones/ audit/
+    check-in/
+      login/page.tsx
+      (protected)/            # scanner PWA (adds CHECK_IN_STAFF)
+        scan/ search/ history/
     api/
-      health/route.ts         # GET /api/health
+      health/                 # GET /api/health
       auth/                   # login, logout, me
-    layout.tsx, page.tsx, globals.css
+      checkout/               # POST reservation
+      orders/[token]/refresh-status/   # payment status poller
+      payments/payway/callback/        # PayWay pushback
+      tickets/                # validate, check-in, undo-check-in, search, [token]/qr
+      admin/                  # event, zones, orders, staff, attendees export, ticket void/resend
+      internal/               # orders/[id]/expire, orders/sweep-expired, payments/reconcile
   components/
-    ui/                       # button, input, label, card (shadcn-style)
-    logout-button.tsx
-  entities/                   # StaffUser, Session, AuditLog
-  migrations/                 # InitAuth + future migrations
-  services/                   # auth.service, audit.service (business logic)
+    ui/                       # shadcn-style primitives
+    admin/                    # event/zone/staff/order/attendee forms + actions
+    check-in/ dev/            # scanner + dev helpers
+    checkout-form, order-status-poller, reservation-countdown,
+    lockout-message, logout-button
+  entities/                   # Event, Zone, Seat, Order, OrderItem, Payment,
+                              # Ticket, StaffUser, Session, AuditLog, CheckInLog
+  migrations/                 # 10 migrations, timestamp-ordered (InitAuth -> SearchTrigramIndexes)
+  services/                   # auth, event, zone, order, payment, ticket, check-in,
+                              # staff, audit, admin-stats/-order/-attendee, cloud-task, email
+    payments/                 # provider abstraction: fake + payway
+    email/                    # provider abstraction: fake + resend
   lib/
-    env.ts, logging.ts, database.ts, money.ts, utils.ts
-    password.ts               # Argon2id hashing
-    session.ts                # DB-backed sessions, getCurrentStaff
-    session-cookie.ts         # cookie name (Edge-safe)
-    authz.ts                  # role checks
-    http.ts                   # same-origin guard, client IP
-  types/enums.ts              # StaffRole, StaffStatus, AuditAction
+    env, logging, database, money, utils, datetime, http
+    password (Argon2id), session + session-cookie (DB sessions), authz, api-auth
+    rate-limit, internal-auth (timing-safe secret), qr-signing, payway-hash
+    order-codes, sales, seat-allocation, seat-labels
+  types/enums.ts              # roles, statuses, audit + check-in actions
   data-source.ts              # DataSource for the TypeORM CLI
-  middleware.ts               # cookie-presence redirect for /admin
+  middleware.ts               # cookie-presence redirect for /admin + /check-in
 scripts/
   create-admin.ts             # seed the first admin
+  sweep-expired.ts            # dev order-expiry sweep (`yarn sweep-expired`)
 tests/
   money.test.ts
 ```

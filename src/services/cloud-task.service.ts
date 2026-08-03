@@ -6,9 +6,10 @@ import { logger } from "@/lib/logging";
  * In production (Phase 9) this will enqueue a Google Cloud Task that calls the
  * protected internal endpoint (e.g. POST /api/internal/orders/{id}/expire) via
  * OIDC at the scheduled time. In development there is no Cloud Tasks emulator,
- * so this is a no-op and expiration is handled by:
- *   - the fallback sweeper (POST /api/internal/orders/sweep-expired, `yarn sweep-expired`)
- *   - lazy reclaim inside createReservation (expired holds are released before allocating)
+ * so this is a no-op and expiration is handled by the scheduled sweeper
+ * (POST /api/internal/orders/sweep-expired, `yarn sweep-expired` in dev,
+ * Cloud Scheduler ~1 min in prod). Expired holds are reclaimed only by that
+ * sweep — createReservation no longer reclaims inline (removed for contention).
  */
 export async function scheduleOrderExpiration(
   orderId: string,
