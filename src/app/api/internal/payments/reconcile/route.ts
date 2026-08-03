@@ -23,6 +23,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
+  // reconcilePayment returns the authoritative ConfirmResult (its own `ok` +
+  // optional `note`); return it as-is rather than shadowing `ok`.
   const result = await reconcilePayment(parsed.data.merchantTransactionId);
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json(result);
 }
