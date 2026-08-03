@@ -1,4 +1,3 @@
-import type { EntityManager } from "typeorm";
 import { getDataSource, getRepo } from "@/lib/database";
 import { Order } from "@/entities/order.entity";
 import { OrderItem } from "@/entities/order-item.entity";
@@ -60,32 +59,6 @@ function seatLockLimit(quantity: number): number {
   return Math.min(Math.max(quantity * 4, SEAT_LOCK_MIN), SEAT_LOCK_MAX);
 }
 
-/** Release seats held by pending orders that have expired, for one event. */
-async function releaseExpiredHoldsForEvent(
-  manager: EntityManager,
-  eventId: string,
-): Promise<void> {
-  await manager.query(
-    `UPDATE seats
-        SET status = 'AVAILABLE', order_id = NULL, order_item_id = NULL,
-            held_until = NULL, updated_at = now()
-      WHERE event_id = $1
-        AND status = 'HELD'
-        AND order_id IN (
-          SELECT id FROM orders
-           WHERE event_id = $1 AND status = 'PENDING'
-             AND reservation_expires_at < now()
-        )`,
-    [eventId],
-  );
-  await manager.query(
-    `UPDATE orders SET status = 'EXPIRED', updated_at = now()
-      WHERE event_id = $1 AND status = 'PENDING'
-        AND reservation_expires_at < now()`,
-    [eventId],
-  );
-}
-
 /**
  * Create a pending order and reserve seats for it, atomically. Prevents
  * overselling: candidate seats are locked with FOR UPDATE SKIP LOCKED so two
@@ -120,9 +93,9 @@ export async function createReservation(
   const ds = await getDataSource();
 
   const result = await ds.transaction(async (manager) => {
-    // Reclaim any expired holds first so their seats become allocatable.
-    await releaseExpiredHoldsForEvent(manager, event.id);
-
+    // Note: expired holds are reclaimed by the scheduled sweep
+    // (releaseExpiredHolds via /api/internal/orders/sweep-expired), not inline
+    // here — an event-wide cleanup on every checkout contends under load.
     const locked: LockedSeat[] = await manager.query(
       `SELECT id, row_label AS "rowLabel", seat_number AS "seatNumber"
          FROM seats

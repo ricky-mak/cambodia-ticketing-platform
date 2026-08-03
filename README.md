@@ -150,12 +150,15 @@ yarn migration:run   # creates orders, order_items; links seats; adds reservatio
   possible, otherwise scattered.
 - **Hold window**: configurable per event (Admin → Event → "Seat hold
   (minutes)", default 10).
-- **Expiration**: production uses Cloud Tasks (Phase 9). In dev, expired holds
-  are released two ways — lazily at the next reservation attempt, and via the
-  sweeper: `yarn sweep-expired` (or `POST /api/internal/orders/sweep-expired`).
-  A single order can be expired via `POST /api/internal/orders/<id>/expire`.
-  Internal routes accept an `x-internal-secret` header matching
-  `INTERNAL_API_SECRET` (required in production; optional in dev).
+- **Expiration**: expired holds are reclaimed by the **timed sweep**
+  (`releaseExpiredHolds`), not inline during checkout — an event-wide cleanup on
+  every checkout contends under load. Run it on a schedule (Cloud Scheduler
+  ~every minute in production; `yarn sweep-expired` or
+  `POST /api/internal/orders/sweep-expired` locally). A single order can be
+  expired via `POST /api/internal/orders/<id>/expire`. Internal routes accept an
+  `x-internal-secret` header matching `INTERNAL_API_SECRET` (required in
+  production; optional in dev). Reclaimed seats reappear on the next sweep, so
+  in local dev run `yarn sweep-expired` to free abandoned holds.
 
 Reserving seats then hands off to the payment step (Phase 5).
 
