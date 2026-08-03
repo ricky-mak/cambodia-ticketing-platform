@@ -186,7 +186,8 @@ export async function createReservation(
     } satisfies ReservationResult;
   });
 
-  await scheduleOrderExpiration(result.publicToken, result.reservationExpiresAt);
+  // Pass the order id — the Cloud Task expiry endpoint looks up the order by id.
+  await scheduleOrderExpiration(result.orderId, result.reservationExpiresAt);
   logger.info("Order reserved", {
     orderNumber: result.orderNumber,
     zoneId: zone.id,
