@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LockoutMessage } from "@/components/lockout-message";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof schema>;
 export default function CheckInLoginPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -34,6 +36,7 @@ export default function CheckInLoginPage() {
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
+    setLockedUntil(null);
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,7 +44,11 @@ export default function CheckInLoginPage() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setServerError(data.error ?? "Login failed");
+      if (data.lockedUntil) {
+        setLockedUntil(data.lockedUntil);
+      } else {
+        setServerError(data.error ?? "Login failed");
+      }
       return;
     }
     router.push("/check-in/scan");
@@ -76,7 +83,16 @@ export default function CheckInLoginPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
-            {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+            {lockedUntil ? (
+              <LockoutMessage
+                lockedUntil={lockedUntil}
+                onExpire={() => setLockedUntil(null)}
+              />
+            ) : (
+              serverError && (
+                <p className="text-sm text-destructive">{serverError}</p>
+              )
+            )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>

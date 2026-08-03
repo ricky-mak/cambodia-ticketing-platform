@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LockoutMessage } from "@/components/lockout-message";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof schema>;
 export default function AdminLoginPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
   const {
     register,
@@ -35,6 +37,7 @@ export default function AdminLoginPage() {
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
+    setLockedUntil(null);
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +46,11 @@ export default function AdminLoginPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setServerError(data.error ?? "Login failed");
+      if (data.lockedUntil) {
+        setLockedUntil(data.lockedUntil);
+      } else {
+        setServerError(data.error ?? "Login failed");
+      }
       return;
     }
 
@@ -90,8 +97,15 @@ export default function AdminLoginPage() {
               )}
             </div>
 
-            {serverError && (
-              <p className="text-sm text-destructive">{serverError}</p>
+            {lockedUntil ? (
+              <LockoutMessage
+                lockedUntil={lockedUntil}
+                onExpire={() => setLockedUntil(null)}
+              />
+            ) : (
+              serverError && (
+                <p className="text-sm text-destructive">{serverError}</p>
+              )
             )}
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>

@@ -15,7 +15,13 @@ export interface LoginInput {
 
 export type LoginResult =
   | { ok: true; token: string; staff: StaffUser }
-  | { ok: false };
+  | { ok: false; locked?: boolean; lockedUntil?: Date };
+
+// Brute-force lockout: after this many consecutive failures, lock the account
+// for the cooldown window. This is global (per account, in the DB), unlike the
+// per-instance IP rate limiter.
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
 
 /**
  * Authenticate a staff user and open a session. Returns a generic failure for
@@ -38,14 +44,36 @@ export async function login(input: LoginInput): Promise<LoginResult> {
     return { ok: false };
   }
 
-  const passwordOk = await verifyPassword(staff.passwordHash, input.password);
-  if (!passwordOk) {
+  // Account temporarily locked after too many failed attempts.
+  if (staff.lockedUntil && staff.lockedUntil.getTime() > Date.now()) {
     await writeAudit({
       action: AuditAction.LOGIN_FAILED,
       staffUserId: staff.id,
-      metadata: { ...auditMeta, reason: "bad_password" },
+      metadata: { ...auditMeta, reason: "locked" },
     });
-    return { ok: false };
+    return { ok: false, locked: true, lockedUntil: staff.lockedUntil };
+  }
+
+  const passwordOk = await verifyPassword(staff.passwordHash, input.password);
+  if (!passwordOk) {
+    staff.failedLoginAttempts += 1;
+    let locked = false;
+    if (staff.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      staff.lockedUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60_000);
+      staff.failedLoginAttempts = 0;
+      locked = true;
+    }
+    await staffRepo.save(staff);
+    await writeAudit({
+      action: AuditAction.LOGIN_FAILED,
+      staffUserId: staff.id,
+      metadata: { ...auditMeta, reason: "bad_password", locked },
+    });
+    return {
+      ok: false,
+      locked,
+      lockedUntil: locked ? (staff.lockedUntil ?? undefined) : undefined,
+    };
   }
 
   const token = await createSession(staff.id, {
@@ -54,6 +82,8 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   });
 
   staff.lastLoginAt = new Date();
+  staff.failedLoginAttempts = 0;
+  staff.lockedUntil = null;
   await staffRepo.save(staff);
 
   await writeAudit({

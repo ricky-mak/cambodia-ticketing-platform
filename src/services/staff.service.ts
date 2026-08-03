@@ -62,7 +62,12 @@ export async function setStaffStatus(
   actorId: string,
 ): Promise<{ ok: boolean }> {
   const repo = await getRepo(StaffUser);
-  const result = await repo.update({ id }, { status });
+  // Re-enabling an account also clears any brute-force lockout.
+  const patch =
+    status === StaffStatus.ACTIVE
+      ? { status, failedLoginAttempts: 0, lockedUntil: null }
+      : { status };
+  const result = await repo.update({ id }, patch);
   if (result.affected === 1) {
     await writeAudit({
       staffUserId: actorId,
@@ -110,7 +115,12 @@ export async function resetStaffPassword(
   const repo = await getRepo(StaffUser);
   const result = await repo.update(
     { id },
-    { passwordHash: await hashPassword(newPassword) },
+    {
+      passwordHash: await hashPassword(newPassword),
+      // Resetting the password also clears any brute-force lockout.
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    },
   );
   if (result.affected === 1) {
     await writeAudit({

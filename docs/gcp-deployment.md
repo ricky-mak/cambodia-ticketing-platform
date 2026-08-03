@@ -274,6 +274,21 @@ client (if running migrations in the pipeline).
   ticket links, and QR image URLs in emails, so it **must** be the public HTTPS
   domain.
 
+### Global rate limiting & WAF (Cloud Armor)
+
+The app's built-in IP rate limiter is in-memory / per-instance (see
+`docs/security.md` §3). For a **global** per-IP limit plus DDoS/WAF protection,
+front Cloud Run with an **external HTTPS Load Balancer** (serverless NEG) and
+attach a **Cloud Armor** security policy with a rate-based-ban rule — e.g.
+throttle/ban a source IP that exceeds N requests/min, optionally allowlist
+office IPs and block known-bad ranges. It runs at the edge, before requests
+reach Cloud Run, and needs no app change. This is the recommended production
+control for abuse/DDoS.
+
+Note: brute-force on a specific staff login is already covered globally by the
+app's DB-backed **account lockout** (5 failed attempts → 15-min lock), so Cloud
+Armor is about edge/IP-level abuse, not login protection.
+
 ---
 
 ## 13. ABA PayWay production configuration
@@ -372,5 +387,6 @@ Keep `synchronize: false` everywhere (it already is) — migrations only.
 - [ ] Resend domain verified; `EMAIL_FROM` set
 - [ ] Cloud Scheduler minute-ly sweep with `x-internal-secret` header
 - [ ] Connection-pool math validated against Cloud SQL tier
+- [ ] (Recommended) HTTPS LB + Cloud Armor rate-limit/WAF policy for edge abuse
 - [ ] Load test passed (Phase 10) before the sales window
 ```

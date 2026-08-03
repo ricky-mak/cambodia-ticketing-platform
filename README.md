@@ -279,15 +279,19 @@ the schema is structured so the real PayWay refund API can be wired in later.
 
 ## Security hardening (Phase 10)
 
-No migration needed. Added in code:
+Run `yarn migration:run` (adds login-lockout columns to `staff_users`). Added in code:
 
 - **Rate limiting** (`src/lib/rate-limit.ts`) on `POST /api/auth/login` (brute
   force), `/api/checkout` (abuse), `/api/tickets/validate` + `/check-in`
   (generous), and `/api/orders/[token]/refresh-status` (poller). Over-limit
   callers get HTTP 429 + `Retry-After`.
-  - **Caveat:** it's in-memory (no Redis per plan), so the limit is *per Cloud
-    Run instance* — effective limit ≈ limit × instances. Fine as a basic guard;
-    back it with Memorystore/Redis for a global limit later.
+  - **Caveat:** the IP limiter is in-memory (no Redis per plan), so it's *per
+    Cloud Run instance*. For a global per-IP limit + WAF/DDoS, use Cloud Armor
+    at the load balancer (see `docs/gcp-deployment.md`).
+- **Login account lockout** — 5 failed passwords lock a staff account for 15
+  minutes (DB-backed, so global regardless of instances; returns HTTP 423). An
+  admin can reset the password or re-enable the account to clear it early. This
+  is the primary brute-force defense, alongside Argon2id's slow hashing.
 - **Security headers + CSP** (`next.config.mjs → headers()`): CSP, HSTS (prod
   only), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, and
   `Permissions-Policy: camera=(self)` (needed by the scanner). The CSP allows

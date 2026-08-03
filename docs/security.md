@@ -48,10 +48,24 @@ hardening. (Rate limiting and security headers are §3 and §4.)
 
 Keyed by client IP (from `x-forwarded-for`, which Cloud Run sets).
 
-> **Limitation:** the limiter is **in-memory / per-instance** (no Redis, per
-> project constraints). On Cloud Run with N instances the effective limit is
-> ~limit × N. It's a solid basic guard; for a strict global limit, back it with
-> Memorystore/Redis later.
+**Login account lockout** (`src/services/auth.service.ts`) — independent of the
+IP limiter and **global** (tracked per account in the DB, so instance count
+doesn't matter): after **5 consecutive failed passwords**, the account is locked
+for **15 minutes** (returns HTTP 423). Counters reset on a successful login; an
+ADMIN can clear a lock early by resetting the password or re-enabling the
+account (both also clear the lock), and it auto-expires. This is the primary
+brute-force defense — combined with Argon2id's deliberately slow hashing,
+password guessing is impractical. (Trade-off: a known email can be locked by an
+attacker; the 15-min window and admin recovery path keep this low-impact.)
+
+> **Limitation:** the *IP* limiter is **in-memory / per-instance** (no Redis, per
+> project constraints). On Cloud Run with N instances the effective per-IP limit
+> is ~limit × N. It's a solid basic guard; the account lockout above is the
+> global brute-force control. For global *per-IP* limiting + WAF/DDoS in
+> production, front Cloud Run with an external HTTPS Load Balancer and a
+> **Cloud Armor** rate-limit policy (see `docs/gcp-deployment.md`). A Redis/
+> Memorystore-backed limiter is another option if you later need strict global
+> app-level limits.
 
 ## 4. Security headers & Content-Security-Policy
 
@@ -154,7 +168,9 @@ Set for all routes in `next.config.mjs → headers()`:
 
 ## Summary of known limitations (candidates for future hardening)
 
-- Rate limiter is per-instance (no Redis) — not a strict global limit.
+- IP rate limiter is per-instance (no Redis); use Cloud Armor for global per-IP
+  limiting at the edge. (Login brute-force is already covered globally by the
+  DB-backed account lockout.)
 - CSP allows `'unsafe-inline'` scripts — nonce-based CSP would be stricter.
 - CSRF is Origin-check + SameSite, not double-submit tokens.
 - Refunds are record-only (no automated PayWay refund yet).

@@ -47,6 +47,25 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) {
+    if (result.locked) {
+      const lockedUntil = result.lockedUntil ?? null;
+      const retryAfterSec = lockedUntil
+        ? Math.max(1, Math.ceil((lockedUntil.getTime() - Date.now()) / 1000))
+        : undefined;
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Account temporarily locked after too many failed attempts.",
+          lockedUntil: lockedUntil?.toISOString() ?? null,
+        },
+        {
+          status: 423,
+          headers: retryAfterSec
+            ? { "Retry-After": String(retryAfterSec) }
+            : undefined,
+        },
+      );
+    }
     // Generic message — do not reveal whether the email exists.
     return NextResponse.json(
       { ok: false, error: "Invalid email or password" },

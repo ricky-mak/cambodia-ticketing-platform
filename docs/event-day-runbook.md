@@ -118,7 +118,15 @@ shouldn't happen. If a seat looks doubly assigned:
 2. With DevOps: **roll back** Cloud Run to the previous revision (instant), then
    diagnose. Never run `synchronize` — schema changes are migrations only.
 
-### G. Refund request
+### G. Staff locked out of login
+Staff logins lock for **15 minutes** after 5 failed password attempts.
+1. Simplest: **wait** — the lock auto-expires after 15 minutes.
+2. Faster: **another ADMIN** goes to **Admin → Staff → Reset password** (or
+   Disable then Enable) for that account, which clears the lock immediately.
+3. If the *only* admin is locked out, wait for the 15-minute auto-expiry. (For
+   resilience, keep at least two ADMIN accounts.)
+
+### H. Refund request
 Refunds are **record-only** in this system:
 1. **Admin → Orders → open → Refund (record only)** — this voids the tickets,
    releases the seats for resale, and marks the order REFUNDED (audited).
