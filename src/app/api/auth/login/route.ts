@@ -3,6 +3,7 @@ import { z } from "zod";
 import { login } from "@/services/auth.service";
 import { setSessionCookie } from "@/lib/session";
 import { isSameOrigin, clientIp } from "@/lib/http";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, "login", 10, 5 * 60_000);
+  if (limited) return limited;
+
   if (!isSameOrigin(request)) {
     return NextResponse.json({ ok: false, error: "Bad origin" }, { status: 403 });
   }

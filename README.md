@@ -5,12 +5,13 @@ signed QR-code tickets by email, and a mobile check-in PWA for staff. Built as
 a modular monolith on Next.js (App Router) + TypeORM + PostgreSQL, deployed to
 Google Cloud Run.
 
-> **Status: Phase 8 — Admin operations.** The admin dashboard now has live
-> metrics, order management (search/filter, cancel, record-only refund, resend
-> email), attendee management (search/filter, void, undo check-in, CSV export),
-> staff accounts (create/disable/role/reset-password, incl. `CHECK_IN_STAFF`),
-> and an audit-log viewer. See `cambodia-ticketing-implementation-plan.md` (§6
-> has the zone/seat amendment).
+> **Status: Phase 10 (in progress) — Production hardening.** All features
+> (Phases 1–8) are complete. Added: in-memory rate limiting on login/checkout/
+> QR endpoints, and security headers + a Content-Security-Policy. Remaining
+> Phase 10 items (load test, backup verification, real Cloud Tasks/Scheduler)
+> are deploy-time and covered in `docs/gcp-deployment.md` + the event-day
+> runbook. See `cambodia-ticketing-implementation-plan.md` (§6 has the zone/seat
+> amendment).
 
 ## Stack
 
@@ -275,6 +276,28 @@ Event, Zones, Staff, Audit):
 
 Refunds are **record-only** in v1 — the money is returned manually via ABA;
 the schema is structured so the real PayWay refund API can be wired in later.
+
+## Security hardening (Phase 10)
+
+No migration needed. Added in code:
+
+- **Rate limiting** (`src/lib/rate-limit.ts`) on `POST /api/auth/login` (brute
+  force), `/api/checkout` (abuse), `/api/tickets/validate` + `/check-in`
+  (generous), and `/api/orders/[token]/refresh-status` (poller). Over-limit
+  callers get HTTP 429 + `Retry-After`.
+  - **Caveat:** it's in-memory (no Redis per plan), so the limit is *per Cloud
+    Run instance* — effective limit ≈ limit × instances. Fine as a basic guard;
+    back it with Memorystore/Redis for a global limit later.
+- **Security headers + CSP** (`next.config.mjs → headers()`): CSP, HSTS (prod
+  only), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, and
+  `Permissions-Policy: camera=(self)` (needed by the scanner). The CSP allows
+  `form-action` to the PayWay checkout domains (so payment redirect works) and
+  `blob:`/`data:` for QR + the camera worker. It uses `'unsafe-inline'` for
+  Next's hydration; tightening to a nonce-based CSP is a future improvement.
+
+Deploy-time hardening (load test, backup verification, real Cloud
+Tasks/Scheduler for order expiry) lives in `docs/gcp-deployment.md` and
+`docs/event-day-runbook.md`.
 
 ## Local PostgreSQL
 

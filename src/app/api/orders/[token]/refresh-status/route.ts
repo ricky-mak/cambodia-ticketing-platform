@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOrderByPublicToken } from "@/services/order.service";
 import { reconcilePayment } from "@/services/payment.service";
 import { getPaymentProvider } from "@/services/payments";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { OrderStatus } from "@/types/enums";
 
 export const runtime = "nodejs";
@@ -17,9 +18,12 @@ export const dynamic = "force-dynamic";
  * orders correctly stay pending and expire.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  const limited = enforceRateLimit(request, "order-refresh", 60, 60_000);
+  if (limited) return limited;
+
   const { token } = await params;
   const view = await getOrderByPublicToken(token);
   if (!view) {

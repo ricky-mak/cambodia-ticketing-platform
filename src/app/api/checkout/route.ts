@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isSameOrigin } from "@/lib/http";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { createReservation, ReservationError } from "@/services/order.service";
 import { initiateCheckout } from "@/services/payment.service";
 
@@ -17,6 +18,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, "checkout", 15, 60_000);
+  if (limited) return limited;
+
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Bad origin" }, { status: 403 });
   }
