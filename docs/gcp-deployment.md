@@ -199,6 +199,13 @@ yarn install --frozen-lockfile
 yarn migration:run          # applies all migrations in src/migrations
 ```
 
+> **Extension note:** one migration runs `CREATE EXTENSION IF NOT EXISTS
+> pg_trgm` (for the search trigram indexes). `pg_trgm` is on Cloud SQL for
+> PostgreSQL's supported-extensions list, but the migration role needs rights to
+> create it — run migrations as the Cloud SQL default/admin user (a member of
+> `cloudsqlsuperuser`), or pre-create the extension once by hand. No special
+> instance flag is required.
+
 Then seed the first admin **once** (one-off job with ADMIN_* env set), then
 remove those env vars:
 

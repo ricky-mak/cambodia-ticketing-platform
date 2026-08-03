@@ -1,4 +1,23 @@
+import { timingSafeEqual } from "node:crypto";
 import { logger } from "@/lib/logging";
+
+/**
+ * Constant-time string comparison so a timing side-channel can't be used to
+ * recover the secret character by character (a plain `===` short-circuits on
+ * the first mismatching byte, which leaks how much of the prefix matched).
+ * `timingSafeEqual` requires equal-length buffers; when lengths differ we still
+ * run a comparison (buffer vs. itself) so the work stays roughly constant, then
+ * fail.
+ */
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Guards internal task endpoints. In production (Phase 9) these are called by
@@ -15,7 +34,7 @@ export function assertInternalRequest(request: Request): boolean {
   const provided = request.headers.get("x-internal-secret");
 
   if (secret) {
-    return provided === secret;
+    return provided !== null && safeEqual(provided, secret);
   }
 
   if (process.env.NODE_ENV === "production") {

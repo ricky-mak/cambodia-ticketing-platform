@@ -1,5 +1,8 @@
-import type { DataSource } from "typeorm";
-import { getDataSource, getRepo } from "@/lib/database";
+import type { DataSource, EntityManager } from "typeorm";
+import { getDataSource } from "@/lib/database";
+
+// Something that can run raw SQL — a DataSource or a transaction's EntityManager.
+type Executor = DataSource | EntityManager;
 import { Ticket } from "@/entities/ticket.entity";
 import { verifyTicketToken } from "@/lib/qr-signing";
 import { CheckInAction, TicketStatus } from "@/types/enums";
@@ -49,10 +52,10 @@ interface DisplayRow {
 }
 
 async function fetchTicketDisplay(
-  ds: DataSource,
+  exec: Executor,
   ticketId: string,
 ): Promise<DisplayRow | null> {
-  const rows: DisplayRow[] = await ds.query(
+  const rows: DisplayRow[] = await exec.query(
     `SELECT t.id, t.ticket_number, t.attendee_name, t.status, t.checked_in_at,
             t.event_id, t.qr_token_id, z.name AS zone_name,
             s.row_label, s.seat_number
@@ -95,13 +98,13 @@ function statusToOutcome(status: string): CheckOutcome {
 }
 
 async function writeCheckInLog(
-  ds: DataSource,
+  exec: Executor,
   action: CheckInAction,
   ticketId: string | null,
   staffUserId: string | null,
   ctx: CheckInContext,
 ): Promise<void> {
-  await ds.query(
+  await exec.query(
     `INSERT INTO check_in_logs
        (id, ticket_id, staff_user_id, action, device_info, ip_address, created_at)
      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, now())`,
@@ -131,34 +134,45 @@ async function performCheckIn(
   staffUserId: string,
   ctx: CheckInContext,
 ): Promise<CheckResult> {
-  // Use UpdateResult.affected (reliable rowCount) rather than the shape of a
-  // raw RETURNING result, which TypeORM does not expose consistently.
-  const repo = await getRepo(Ticket);
-  const result = await repo.update(
-    { id: ticketId, status: TicketStatus.VALID },
-    {
-      status: TicketStatus.CHECKED_IN,
-      checkedInAt: new Date(),
-      checkedInBy: staffUserId,
-    },
-  );
+  // The ticket UPDATE and its audit-log row are written in ONE transaction, so
+  // an admitted ticket always has a matching CHECK_IN log (and a failed attempt
+  // its VALIDATION_FAILED log). A log-insert failure rolls back the admission —
+  // the intended consistency guarantee.
+  return ds.transaction(async (manager: EntityManager) => {
+    // Use UpdateResult.affected (reliable rowCount) rather than the shape of a
+    // raw RETURNING result, which TypeORM does not expose consistently.
+    const result = await manager.getRepository<Ticket>("Ticket").update(
+      { id: ticketId, status: TicketStatus.VALID },
+      {
+        status: TicketStatus.CHECKED_IN,
+        checkedInAt: new Date(),
+        checkedInBy: staffUserId,
+      },
+    );
 
-  const row = await fetchTicketDisplay(ds, ticketId);
+    const row = await fetchTicketDisplay(manager, ticketId);
 
-  if (result.affected === 1) {
-    await writeCheckInLog(ds, CheckInAction.CHECK_IN, ticketId, staffUserId, ctx);
-    return { outcome: "CHECKED_IN", ticket: row ? toDisplay(row) : undefined };
-  }
+    if (result.affected === 1) {
+      await writeCheckInLog(
+        manager,
+        CheckInAction.CHECK_IN,
+        ticketId,
+        staffUserId,
+        ctx,
+      );
+      return { outcome: "CHECKED_IN", ticket: row ? toDisplay(row) : undefined };
+    }
 
-  await writeCheckInLog(
-    ds,
-    CheckInAction.VALIDATION_FAILED,
-    row?.id ?? null,
-    staffUserId,
-    ctx,
-  );
-  if (!row) return { outcome: "TICKET_NOT_FOUND" };
-  return { outcome: statusToOutcome(row.status), ticket: toDisplay(row) };
+    await writeCheckInLog(
+      manager,
+      CheckInAction.VALIDATION_FAILED,
+      row?.id ?? null,
+      staffUserId,
+      ctx,
+    );
+    if (!row) return { outcome: "TICKET_NOT_FOUND" };
+    return { outcome: statusToOutcome(row.status), ticket: toDisplay(row) };
+  });
 }
 
 /** Check in from a scanned QR token. */
@@ -224,22 +238,24 @@ export async function undoCheckIn(
   ctx: CheckInContext,
 ): Promise<{ ok: boolean }> {
   const ds = await getDataSource();
-  const repo = await getRepo(Ticket);
-  const result = await repo.update(
-    { id: ticketId, status: TicketStatus.CHECKED_IN },
-    { status: TicketStatus.VALID, checkedInAt: null, checkedInBy: null },
-  );
-  if (result.affected === 1) {
-    await writeCheckInLog(
-      ds,
-      CheckInAction.UNDO_CHECK_IN,
-      ticketId,
-      staffUserId,
-      ctx,
+  // Revert and log atomically, mirroring performCheckIn.
+  return ds.transaction(async (manager: EntityManager) => {
+    const result = await manager.getRepository<Ticket>("Ticket").update(
+      { id: ticketId, status: TicketStatus.CHECKED_IN },
+      { status: TicketStatus.VALID, checkedInAt: null, checkedInBy: null },
     );
-    return { ok: true };
-  }
-  return { ok: false };
+    if (result.affected === 1) {
+      await writeCheckInLog(
+        manager,
+        CheckInAction.UNDO_CHECK_IN,
+        ticketId,
+        staffUserId,
+        ctx,
+      );
+      return { ok: true };
+    }
+    return { ok: false };
+  });
 }
 
 export interface SearchRow {
@@ -258,6 +274,10 @@ export async function searchTickets(query: string): Promise<SearchRow[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const ds = await getDataSource();
+  // Leading-wildcard ILIKE is served by the GIN pg_trgm indexes on
+  // tickets.(attendee_name, attendee_email, ticket_number) and
+  // orders.order_number (migration SearchTrigramIndexes), so this stays fast
+  // at ~60k tickets even under concurrent event-day searches.
   const like = `%${trimmed}%`;
   const rows: Array<{
     id: string;

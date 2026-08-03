@@ -31,7 +31,10 @@ hardening. (Rate limiting and security headers are §3 and §4.)
   route (not just the UI). Undo-check-in is restricted to ADMIN/MANAGER.
 - **Internal task endpoints** (`/api/internal/*`) require an
   `x-internal-secret` header matching `INTERNAL_API_SECRET`
-  (`src/lib/internal-auth.ts`); rejected in production if unset.
+  (`src/lib/internal-auth.ts`); rejected in production if unset. The header is
+  compared to the secret with a **constant-time** comparison
+  (`crypto.timingSafeEqual`), so a timing side-channel can't be used to recover
+  the secret.
 
 ## 3. Rate limiting
 
@@ -155,6 +158,11 @@ Set for all routes in `next.config.mjs → headers()`:
 - Check-in is an atomic `UPDATE … WHERE status='VALID'` verified via
   `UpdateResult.affected`, so a ticket can be admitted only once
   (`src/services/check-in.service.ts`).
+- The ticket UPDATE and its `check_in_logs` audit row are written in a **single
+  transaction** (`performCheckIn` / `undoCheckIn`), so an admitted ticket always
+  has a matching `CHECK_IN` log and an undo always has its `UNDO_CHECK_IN` log —
+  the state change and its audit record can't diverge. (Trade-off: a rare
+  log-insert failure rolls back the admission, which is the intended guarantee.)
 
 ## 10. Data exposure & secrets
 
