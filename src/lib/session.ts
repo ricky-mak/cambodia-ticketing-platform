@@ -4,7 +4,8 @@ import { LessThan } from "typeorm";
 import { getRepo } from "./database";
 import { Session } from "@/entities/session.entity";
 import { StaffUser } from "@/entities/staff-user.entity";
-import { StaffStatus } from "@/types/enums";
+import { Organizer } from "@/entities/organizer.entity";
+import { OrganizerStatus, StaffStatus } from "@/types/enums";
 import { SESSION_COOKIE } from "./session-cookie";
 
 export { SESSION_COOKIE };
@@ -83,6 +84,15 @@ export async function getCurrentStaff(): Promise<StaffUser | null> {
   });
 
   if (!staff || staff.status !== StaffStatus.ACTIVE) return null;
+
+  // Organizer-scoped staff lose access immediately if their organizer is
+  // suspended (platform staff have organizer_id NULL and skip this check).
+  if (staff.organizerId) {
+    const organizer = await (await getRepo(Organizer)).findOne({
+      where: { id: staff.organizerId },
+    });
+    if (!organizer || organizer.status !== OrganizerStatus.ACTIVE) return null;
+  }
 
   return staff;
 }

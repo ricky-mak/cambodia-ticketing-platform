@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentStaff } from "@/lib/session";
-import { canAccessAdmin } from "@/lib/authz";
+import { canAccessAdmin, isPlatformAdmin } from "@/lib/authz";
 import { LogoutButton } from "@/components/logout-button";
 
 const NAV = [
@@ -13,6 +13,9 @@ const NAV = [
   { href: "/admin/staff", label: "Staff" },
   { href: "/admin/audit", label: "Audit" },
 ];
+
+// Platform-admin-only entries.
+const PLATFORM_NAV = [{ href: "/admin/organizers", label: "Organizers" }];
 
 export const dynamic = "force-dynamic";
 
@@ -28,13 +31,15 @@ export default async function AdminProtectedLayout({
     redirect("/admin/login");
   }
 
+  const nav = isPlatformAdmin(staff) ? [...NAV, ...PLATFORM_NAV] : NAV;
+
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="flex items-center justify-between border-b bg-background px-6 py-3">
         <div className="flex items-center gap-6">
           <div className="font-semibold">Event Ticketing — Admin</div>
           <nav className="flex items-center gap-4 text-sm">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

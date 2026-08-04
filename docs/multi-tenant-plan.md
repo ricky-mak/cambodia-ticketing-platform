@@ -169,8 +169,15 @@ shippable/testable.
   guards; `organizer.service`; new events/orders/tickets are tagged with
   `organizer_id` at creation. No user-visible change — platform admin still sees
   everything. **Requires `yarn migration:run` locally.**
-- **Phase B — Platform admin.** Organizers CRUD (create organizer + first
-  organizer-admin, suspend/enable); platform dashboard across tenants.
+- **Phase B — Platform admin. ✅ DONE.** `/admin/organizers` (platform-admin
+  only): list with per-organizer counts (events, paid orders), create an
+  organizer together with its first organizer-admin in one transaction
+  (`createOrganizerWithAdmin`), and `/admin/organizers/[id]` to edit
+  name/contact/payout-notes and suspend/re-activate. APIs `POST
+  /api/admin/organizers` + `PATCH /api/admin/organizers/[id]`, gated by
+  `getPlatformAdmin`. Nav shows "Organizers" only to platform admins. Suspending
+  an organizer immediately blocks its staff from authenticating (enforced in
+  `getCurrentStaff`). Audit: `ORGANIZER_CREATED/UPDATED/STATUS_CHANGED`.
 - **Phase C — Organizer portal.** Scope the existing admin screens to
   `organizer_id`; convert single-event assumptions to an event list + selector
   (multi-event per organizer).

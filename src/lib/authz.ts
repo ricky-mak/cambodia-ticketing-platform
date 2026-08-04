@@ -30,3 +30,14 @@ export function canAccessAdmin(role: StaffRole): boolean {
 export function canAccessCheckIn(role: StaffRole): boolean {
   return hasRole(role, CHECK_IN_AREA_ROLES);
 }
+
+/**
+ * Platform admin = an ADMIN with no owning organizer (organizer_id NULL). Only
+ * platform admins may manage organizers. Organizer-scoped admins are excluded.
+ */
+export function isPlatformAdmin(staff: {
+  role: StaffRole;
+  organizerId: string | null;
+}): boolean {
+  return staff.role === StaffRole.ADMIN && staff.organizerId === null;
+}
