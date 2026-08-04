@@ -39,6 +39,20 @@ export async function getEventById(id: string): Promise<Event | null> {
   return repo.findOne({ where: { id } });
 }
 
+/**
+ * Events visible to a tenant scope: all events for platform staff
+ * (organizerId === null), otherwise just that organizer's events.
+ */
+export async function listEventsForScope(
+  organizerId: string | null,
+): Promise<Event[]> {
+  const repo = await getRepo(Event);
+  if (organizerId === null) {
+    return repo.find({ order: { createdAt: "ASC" } });
+  }
+  return repo.find({ where: { organizerId }, order: { createdAt: "ASC" } });
+}
+
 export async function getPublishedEvent(): Promise<Event | null> {
   const repo = await getRepo(Event);
   return repo.findOne({ where: { status: EventStatus.PUBLISHED } });

@@ -7,14 +7,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CreateZoneForm } from "@/components/admin/create-zone-form";
-import { getPrimaryEvent } from "@/services/event.service";
+import { redirect } from "next/navigation";
+import { getAdminContext } from "@/lib/admin-context";
 import { listZonesWithCounts } from "@/services/zone.service";
 import { formatMoney } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
 export default async function ZonesPage() {
-  const event = await getPrimaryEvent();
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+  const event = ctx.activeEvent;
 
   if (!event) {
     return (
@@ -27,8 +30,8 @@ export default async function ZonesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link className="underline" href="/admin/event">
-              Go to event settings →
+            <Link className="underline" href="/admin/events">
+              Go to events →
             </Link>
           </CardContent>
         </Card>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { OrderActions } from "@/components/admin/order-actions";
 import { getOrderDetail } from "@/services/admin-order.service";
+import { getAdminContext } from "@/lib/admin-context";
+import { inScope } from "@/lib/tenant";
 import { formatMoney } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +20,12 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+
   const { id } = await params;
   const detail = await getOrderDetail(id);
-  if (!detail) notFound();
+  if (!detail || !inScope(ctx.scope, detail.order.organizerId)) notFound();
   const { order, items, payments, seats } = detail;
 
   return (

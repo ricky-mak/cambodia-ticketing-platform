@@ -8,7 +8,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AttendeeActions } from "@/components/admin/attendee-actions";
-import { getPrimaryEvent } from "@/services/event.service";
+import { redirect } from "next/navigation";
+import { getAdminContext } from "@/lib/admin-context";
 import { listZonesWithCounts } from "@/services/zone.service";
 import { searchAttendees } from "@/services/admin-attendee.service";
 
@@ -19,7 +20,9 @@ export default async function AttendeesPage({
 }: {
   searchParams: Promise<{ q?: string; zoneId?: string; checkedIn?: string }>;
 }) {
-  const event = await getPrimaryEvent();
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+  const event = ctx.activeEvent;
   if (!event) {
     return <p className="text-muted-foreground">Create an event first.</p>;
   }
@@ -37,6 +40,7 @@ export default async function AttendeesPage({
   });
 
   const exportQuery = new URLSearchParams();
+  exportQuery.set("event", event.id);
   if (q) exportQuery.set("q", q);
   if (zoneId) exportQuery.set("zoneId", zoneId);
   if (checkedInFilter) exportQuery.set("checkedIn", checkedInFilter);

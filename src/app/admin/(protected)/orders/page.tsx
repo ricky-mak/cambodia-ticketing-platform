@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getPrimaryEvent } from "@/services/event.service";
+import { redirect } from "next/navigation";
+import { getAdminContext } from "@/lib/admin-context";
 import { searchOrders } from "@/services/admin-order.service";
 import { formatMoney } from "@/lib/money";
 import { ORDER_STATUSES } from "@/types/enums";
@@ -19,7 +20,9 @@ export default async function OrdersPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string }>;
 }) {
-  const event = await getPrimaryEvent();
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+  const event = ctx.activeEvent;
   if (!event) {
     return <p className="text-muted-foreground">Create an event first.</p>;
   }

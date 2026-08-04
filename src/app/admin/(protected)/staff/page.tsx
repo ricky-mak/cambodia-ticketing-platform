@@ -7,15 +7,17 @@ import {
 } from "@/components/ui/card";
 import { CreateStaffForm } from "@/components/admin/create-staff-form";
 import { StaffActions } from "@/components/admin/staff-actions";
-import { getCurrentStaff } from "@/lib/session";
+import { redirect } from "next/navigation";
+import { getAdminContext } from "@/lib/admin-context";
 import { listStaff } from "@/services/staff.service";
 import { StaffRole } from "@/types/enums";
 
 export const dynamic = "force-dynamic";
 
 export default async function StaffPage() {
-  const current = await getCurrentStaff();
-  if (!current || current.role !== StaffRole.ADMIN) {
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+  if (ctx.staff.role !== StaffRole.ADMIN) {
     return (
       <p className="text-muted-foreground">
         Staff management is available to admins only.
@@ -23,7 +25,7 @@ export default async function StaffPage() {
     );
   }
 
-  const staff = await listStaff();
+  const staff = await listStaff(ctx.scope.organizerId);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

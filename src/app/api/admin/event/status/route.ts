@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAdminStaff } from "@/lib/api-auth";
+import { getScopedAdminStaff } from "@/lib/api-auth";
+import { inScope } from "@/lib/tenant";
 import { isSameOrigin } from "@/lib/http";
-import { setEventStatus } from "@/services/event.service";
+import { getEventById, setEventStatus } from "@/services/event.service";
 import { writeAudit } from "@/services/audit.service";
 import { AuditAction, EventStatus } from "@/types/enums";
 
@@ -15,10 +16,11 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const staff = await getAdminStaff();
-  if (!staff) {
+  const gated = await getScopedAdminStaff();
+  if (!gated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { staff, scope } = gated;
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Bad origin" }, { status: 403 });
   }
@@ -26,6 +28,14 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+  }
+
+  const target = await getEventById(parsed.data.id);
+  if (!target) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!inScope(scope, target.organizerId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

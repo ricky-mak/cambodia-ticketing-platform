@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPrimaryEvent } from "@/services/event.service";
+import { getAdminContext } from "@/lib/admin-context";
 import { getDashboardMetrics } from "@/services/admin-stats.service";
 import { formatMoney } from "@/lib/money";
 
@@ -27,7 +28,9 @@ function Metric({
 }
 
 export default async function DashboardPage() {
-  const event = await getPrimaryEvent();
+  const ctx = await getAdminContext();
+  if (!ctx) redirect("/admin/login");
+  const event = ctx.activeEvent;
 
   if (!event) {
     return (
@@ -37,7 +40,7 @@ export default async function DashboardPage() {
             <CardTitle>No event yet</CardTitle>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/event" className="underline">
+            <Link href="/admin/events" className="underline">
               Create your event to see metrics →
             </Link>
           </CardContent>

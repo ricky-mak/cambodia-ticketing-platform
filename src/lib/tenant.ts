@@ -23,6 +23,15 @@ export function getTenantScope(staff: StaffUser): TenantScope {
 }
 
 /**
+ * Whether a resource owned by `organizerId` is visible to this scope. Platform
+ * staff see everything; organizer staff only their own organizer. Use this as
+ * the single ownership check before returning or mutating tenant-owned data.
+ */
+export function inScope(scope: TenantScope, organizerId: string): boolean {
+  return scope.isPlatform || scope.organizerId === organizerId;
+}
+
+/**
  * Resolve the organizer_id a query should be constrained to.
  *
  * - Organizer-scoped staff: always their own organizer (any `requested` value

@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPlatformAdmin } from "@/lib/api-auth";
 import { listAuditLogs } from "@/services/audit.service";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +16,11 @@ function formatTime(iso: string): string {
 }
 
 export default async function AuditPage() {
+  // The audit log is global (no organizer_id column yet), so it's restricted to
+  // platform admins until it's tenant-scoped (see multi-tenant-plan.md, Phase G).
+  const platform = await getPlatformAdmin();
+  if (!platform) redirect("/admin/dashboard");
+
   const logs = await listAuditLogs(150);
 
   return (

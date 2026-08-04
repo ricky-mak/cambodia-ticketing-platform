@@ -25,6 +25,12 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, reason: "invalid" }, { status: 400 });
   }
-  const result = await createStaff(parsed.data, staff.id);
+  // New staff inherit the creator's tenant: an organizer admin creates staff in
+  // their own organizer; a platform admin (organizer_id NULL) creates platform
+  // staff.
+  const result = await createStaff(
+    { ...parsed.data, organizerId: staff.organizerId },
+    staff.id,
+  );
   return NextResponse.json(result, { status: result.ok ? 200 : 409 });
 }

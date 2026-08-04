@@ -25,6 +25,18 @@ export interface AttendeeFilters {
   limit?: number;
 }
 
+/** The owning organizer of a ticket (for tenant ownership checks), or null. */
+export async function getTicketOrganizerId(
+  ticketId: string,
+): Promise<string | null> {
+  const ds = await getDataSource();
+  const rows: Array<{ organizer_id: string }> = await ds.query(
+    `SELECT organizer_id FROM tickets WHERE id = $1`,
+    [ticketId],
+  );
+  return rows[0]?.organizer_id ?? null;
+}
+
 async function queryAttendees(f: AttendeeFilters): Promise<AttendeeRow[]> {
   const ds = await getDataSource();
   const like = f.q && f.q.trim() ? `%${f.q.trim()}%` : null;

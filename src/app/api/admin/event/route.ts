@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAdminStaff } from "@/lib/api-auth";
+import { getScopedAdminStaff } from "@/lib/api-auth";
+import { inScope } from "@/lib/tenant";
 import { isSameOrigin } from "@/lib/http";
 import { fromDateTimeLocal } from "@/lib/datetime";
-import { createEvent, updateEvent } from "@/services/event.service";
+import { createEvent, getEventById, updateEvent } from "@/services/event.service";
 import { writeAudit } from "@/services/audit.service";
 import { AuditAction } from "@/types/enums";
 
@@ -39,10 +40,11 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const staff = await getAdminStaff();
-  if (!staff) {
+  const gated = await getScopedAdminStaff();
+  if (!gated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { staff, scope } = gated;
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "Bad origin" }, { status: 403 });
   }
@@ -63,6 +65,20 @@ export async function POST(request: Request) {
   }
 
   const d = parsed.data;
+
+  // Ownership: organizer admins may only edit their own events; on create,
+  // their new event is bound to their organizer. Platform staff fall back to
+  // the default organizer (no picker yet).
+  if (d.id) {
+    const existing = await getEventById(d.id);
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (!inScope(scope, existing.organizerId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const input = {
     name: d.name,
     slug: d.slug,
@@ -82,6 +98,9 @@ export async function POST(request: Request) {
     reservationMinutes: d.reservationMinutes,
     maxPendingPerEmail: d.maxPendingPerEmail,
     maxPendingPerIp: d.maxPendingPerIp,
+    // Organizer admins create under their own organizer; platform staff let
+    // createEvent fall back to the default organizer.
+    ...(scope.organizerId ? { organizerId: scope.organizerId } : {}),
   };
 
   try {

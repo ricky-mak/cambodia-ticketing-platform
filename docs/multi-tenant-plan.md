@@ -178,9 +178,21 @@ shippable/testable.
   `getPlatformAdmin`. Nav shows "Organizers" only to platform admins. Suspending
   an organizer immediately blocks its staff from authenticating (enforced in
   `getCurrentStaff`). Audit: `ORGANIZER_CREATED/UPDATED/STATUS_CHANGED`.
-- **Phase C — Organizer portal.** Scope the existing admin screens to
-  `organizer_id`; convert single-event assumptions to an event list + selector
-  (multi-event per organizer).
+- **Phase C — Organizer portal. ✅ DONE.** Introduced an **active-event context**
+  (`src/lib/admin-context.ts` + a header `EventSelector`, cookie-remembered and
+  re-validated against scope) so admin pages work on one selected event.
+  `/admin/events` (list + create) and `/admin/events/[id]` (edit + publish)
+  replace the single-event page (`/admin/event` now redirects). Dashboard,
+  orders, attendees and zones read the active event instead of
+  `getPrimaryEvent`. Isolation: event / event-status / zones-create /
+  attendees-export routes verify the event is in the caller's scope; order and
+  ticket mutation routes (cancel/refund/resend/void) and the order-detail page
+  verify the target's `organizer_id` is in scope; staff list/create/mutate are
+  organizer-scoped (organizer admins only see/manage their own staff; new staff
+  inherit the creator's organizer). Audit log is **restricted to platform
+  admins** for now (see Phase G — needs an `organizer_id` column to be
+  per-organizer). Deferred to Phase D: the public site still shows a single
+  published event and doesn't yet filter out suspended organizers.
 - **Phase D — Public marketplace.** `/` lists all published events;
   `/events/[slug]` detail; wire checkout from the event page; retire
   `getPrimaryEvent` as the public entry point.

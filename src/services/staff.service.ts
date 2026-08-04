@@ -13,9 +13,18 @@ export interface StaffListRow {
   lastLoginAt: string | null;
 }
 
-export async function listStaff(): Promise<StaffListRow[]> {
+/**
+ * Staff visible to a tenant scope. Platform staff (organizerId === null) see
+ * everyone; an organizer admin sees only their own organizer's staff.
+ */
+export async function listStaff(
+  organizerId: string | null,
+): Promise<StaffListRow[]> {
   const repo = await getRepo(StaffUser);
-  const staff = await repo.find({ order: { createdAt: "ASC" } });
+  const staff =
+    organizerId === null
+      ? await repo.find({ order: { createdAt: "ASC" } })
+      : await repo.find({ where: { organizerId }, order: { createdAt: "ASC" } });
   return staff.map((s) => ({
     id: s.id,
     name: s.name,
@@ -27,7 +36,14 @@ export async function listStaff(): Promise<StaffListRow[]> {
 }
 
 export async function createStaff(
-  input: { name: string; email: string; password: string; role: StaffRole },
+  input: {
+    name: string;
+    email: string;
+    password: string;
+    role: StaffRole;
+    // Owning organizer for the new account. null = platform-level staff.
+    organizerId: string | null;
+  },
   actorId: string,
 ): Promise<{ ok: boolean; reason?: string; id?: string }> {
   const email = input.email.trim().toLowerCase();
@@ -44,6 +60,7 @@ export async function createStaff(
     passwordHash: await hashPassword(input.password),
     role: input.role,
     status: StaffStatus.ACTIVE,
+    organizerId: input.organizerId,
   });
   await repo.save(staff);
   await writeAudit({

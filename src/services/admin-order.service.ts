@@ -20,6 +20,18 @@ export interface OrderListRow {
   createdAt: string;
 }
 
+/** The owning organizer of an order (for tenant ownership checks), or null. */
+export async function getOrderOrganizerId(
+  orderId: string,
+): Promise<string | null> {
+  const ds = await getDataSource();
+  const rows: Array<{ organizer_id: string }> = await ds.query(
+    `SELECT organizer_id FROM orders WHERE id = $1`,
+    [orderId],
+  );
+  return rows[0]?.organizer_id ?? null;
+}
+
 export async function searchOrders(params: {
   eventId: string;
   q?: string;

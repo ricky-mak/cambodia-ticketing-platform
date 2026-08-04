@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSuperAdmin } from "@/lib/api-auth";
 import { isSameOrigin } from "@/lib/http";
+import { getRepo } from "@/lib/database";
+import { StaffUser } from "@/entities/staff-user.entity";
 import {
   setStaffStatus,
   setStaffRole,
@@ -28,6 +30,19 @@ export async function POST(
     return NextResponse.json({ error: "Bad origin" }, { status: 403 });
 
   const { id } = await params;
+
+  // Ownership: an organizer admin may only manage staff in their own organizer;
+  // platform admins (organizer_id NULL) may manage anyone.
+  const target = await (await getRepo(StaffUser)).findOne({ where: { id } });
+  if (!target) {
+    return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404 });
+  }
+  const canManage =
+    actor.organizerId === null || actor.organizerId === target.organizerId;
+  if (!canManage) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ ok: false, reason: "invalid" }, { status: 400 });
