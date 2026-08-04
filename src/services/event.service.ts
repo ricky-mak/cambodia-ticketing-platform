@@ -1,10 +1,15 @@
 import { getRepo } from "@/lib/database";
 import { Event } from "@/entities/event.entity";
 import { EventStatus } from "@/types/enums";
+import { getDefaultOrganizerId } from "@/services/organizer.service";
 
 export interface EventInput {
   name: string;
   slug: string;
+  // Owning organizer. Optional at the input layer for now: when omitted, new
+  // events fall back to the default organizer (single-tenant behaviour). An
+  // organizer picker will supply this once the platform admin UI lands.
+  organizerId?: string;
   description?: string | null;
   venueName?: string | null;
   venueAddress?: string | null;
@@ -41,8 +46,10 @@ export async function getPublishedEvent(): Promise<Event | null> {
 
 export async function createEvent(input: EventInput): Promise<Event> {
   const repo = await getRepo(Event);
+  const organizerId = input.organizerId ?? (await getDefaultOrganizerId());
   const event = repo.create({
     ...input,
+    organizerId,
     currency: input.currency ?? "USD",
     status: EventStatus.DRAFT,
   });

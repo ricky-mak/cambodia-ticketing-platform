@@ -18,6 +18,12 @@ export class Ticket {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  // Owning tenant, denormalized for fast tenant-scoped queries and
+  // defense-in-depth. Set at creation, never updated.
+  @Index("idx_tickets_organizer_id")
+  @Column({ name: "organizer_id", type: "uuid" })
+  organizerId!: string;
+
   @Index("idx_tickets_event_id")
   @Column({ name: "event_id", type: "uuid" })
   eventId!: string;

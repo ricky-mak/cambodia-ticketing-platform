@@ -12,6 +12,13 @@ export enum StaffRole {
 
 export const STAFF_ROLES = Object.values(StaffRole);
 
+export enum OrganizerStatus {
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+}
+
+export const ORGANIZER_STATUSES = Object.values(OrganizerStatus);
+
 export enum StaffStatus {
   ACTIVE = "ACTIVE",
   DISABLED = "DISABLED",

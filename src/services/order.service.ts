@@ -162,6 +162,7 @@ export async function createReservation(
 
     const orderRepo = manager.getRepository<Order>("Order");
     const order = orderRepo.create({
+      organizerId: event.organizerId,
       eventId: event.id,
       orderNumber: generateOrderNumber(),
       publicToken: generatePublicToken(),

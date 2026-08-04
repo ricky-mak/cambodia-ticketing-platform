@@ -13,6 +13,11 @@ export class Event {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  // Owning tenant. Every event belongs to one organizer.
+  @Index("idx_events_organizer_id")
+  @Column({ name: "organizer_id", type: "uuid" })
+  organizerId!: string;
+
   @Column({ type: "varchar", length: 255 })
   name!: string;
 

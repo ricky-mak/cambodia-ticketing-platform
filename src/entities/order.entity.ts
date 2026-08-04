@@ -13,6 +13,12 @@ export class Order {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  // Owning tenant, denormalized from the event for fast tenant-scoped queries
+  // and defense-in-depth. Set at creation, never updated.
+  @Index("idx_orders_organizer_id")
+  @Column({ name: "organizer_id", type: "uuid" })
+  organizerId!: string;
+
   @Index("idx_orders_event_id")
   @Column({ name: "event_id", type: "uuid" })
   eventId!: string;

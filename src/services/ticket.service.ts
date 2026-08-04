@@ -23,10 +23,12 @@ export async function createTicketsForPaidOrder(
 
   const orderRows: Array<{
     event_id: string;
+    organizer_id: string;
     customer_name: string;
     customer_email: string;
   }> = await manager.query(
-    `SELECT event_id, customer_name, customer_email FROM orders WHERE id = $1`,
+    `SELECT event_id, organizer_id, customer_name, customer_email
+       FROM orders WHERE id = $1`,
     [orderId],
   );
   const order = orderRows[0];
@@ -43,13 +45,14 @@ export async function createTicketsForPaidOrder(
   for (const seat of seats) {
     await manager.query(
       `INSERT INTO tickets
-         (id, event_id, order_id, order_item_id, zone_id, seat_id,
+         (id, event_id, organizer_id, order_id, order_item_id, zone_id, seat_id,
           ticket_number, public_token, qr_token_id, attendee_name,
           attendee_email, status, created_at, updated_at)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7,
-               gen_random_uuid(), $8, $9, 'VALID', now(), now())`,
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8,
+               gen_random_uuid(), $9, $10, 'VALID', now(), now())`,
       [
         order.event_id,
+        order.organizer_id,
         orderId,
         seat.order_item_id,
         seat.zone_id,

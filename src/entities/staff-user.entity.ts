@@ -27,6 +27,13 @@ export class StaffUser {
   @Column({ type: "varchar", length: 32 })
   role!: StaffRole;
 
+  // Owning tenant. NULL = platform-level staff (the operator); a non-null value
+  // scopes this account to one organizer. Roles above are interpreted within
+  // this scope.
+  @Index("idx_staff_users_organizer_id")
+  @Column({ name: "organizer_id", type: "uuid", nullable: true })
+  organizerId!: string | null;
+
   @Column({ type: "varchar", length: 16, default: StaffStatus.ACTIVE })
   status!: StaffStatus;
 
