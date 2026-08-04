@@ -36,7 +36,9 @@ export default async function OrderPage({
   return (
     <main className="mx-auto max-w-lg space-y-6 p-6 sm:p-10">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Your order</h1>
+        <h1 className="font-serif text-2xl font-bold tracking-tight">
+          Your order
+        </h1>
         <p className="text-muted-foreground">Order {order.orderNumber}</p>
       </div>
 
@@ -60,7 +62,7 @@ export default async function OrderPage({
       {isPaid && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-green-600">Payment confirmed</CardTitle>
+            <CardTitle className="text-success">Payment confirmed</CardTitle>
             <CardDescription>
               Your seats are booked and your tickets have been emailed to you.
             </CardDescription>
@@ -117,9 +119,11 @@ export default async function OrderPage({
               <span>{formatMoney(item.totalPriceMinor, order.currency)}</span>
             </div>
           ))}
-          <div className="flex justify-between border-t pt-2 font-semibold">
+          <div className="flex items-baseline justify-between border-t pt-2 font-semibold">
             <span>Total</span>
-            <span>{formatMoney(order.totalMinor, order.currency)}</span>
+            <span className="text-lg font-bold text-rose">
+              {formatMoney(order.totalMinor, order.currency)}
+            </span>
           </div>
 
           {seats.length > 0 && (

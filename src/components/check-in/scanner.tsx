@@ -58,29 +58,29 @@ function outcomeStyle(outcome: string): {
 } {
   switch (outcome) {
     case "VALID":
-      return { bg: "bg-green-600", title: "Valid ticket", kind: "ok" };
+      return { bg: "bg-success", title: "Valid ticket", kind: "ok" };
     case "CHECKED_IN":
-      return { bg: "bg-green-600", title: "Checked in ✓", kind: "ok" };
+      return { bg: "bg-success", title: "Checked in ✓", kind: "ok" };
     case "ALREADY_CHECKED_IN":
       return {
-        bg: "bg-orange-500",
+        bg: "bg-amber-500",
         title: "Already checked in",
         kind: "warn",
       };
     case "TICKET_NOT_FOUND":
-      return { bg: "bg-red-600", title: "Ticket not found", kind: "error" };
+      return { bg: "bg-destructive", title: "Ticket not found", kind: "error" };
     case "INVALID_SIGNATURE":
-      return { bg: "bg-red-600", title: "Invalid QR code", kind: "error" };
+      return { bg: "bg-destructive", title: "Invalid QR code", kind: "error" };
     case "WRONG_EVENT":
-      return { bg: "bg-red-600", title: "Wrong event", kind: "error" };
+      return { bg: "bg-destructive", title: "Wrong event", kind: "error" };
     case "CANCELLED":
-      return { bg: "bg-red-600", title: "Ticket cancelled", kind: "error" };
+      return { bg: "bg-destructive", title: "Ticket cancelled", kind: "error" };
     case "REFUNDED":
-      return { bg: "bg-red-600", title: "Ticket refunded", kind: "error" };
+      return { bg: "bg-destructive", title: "Ticket refunded", kind: "error" };
     case "VOID":
-      return { bg: "bg-red-600", title: "Ticket void", kind: "error" };
+      return { bg: "bg-destructive", title: "Ticket void", kind: "error" };
     default:
-      return { bg: "bg-red-600", title: "Error", kind: "error" };
+      return { bg: "bg-destructive", title: "Error", kind: "error" };
   }
 }
 
@@ -269,7 +269,7 @@ export function Scanner() {
               {result.outcome === "VALID" ? (
                 <>
                   <Button
-                    className="w-full bg-white text-green-700 hover:bg-white/90"
+                    className="w-full bg-white text-success hover:bg-white/90"
                     onClick={confirmCheckIn}
                     disabled={checking}
                   >
@@ -286,7 +286,7 @@ export function Scanner() {
                 </>
               ) : (
                 <Button
-                  className="w-full bg-white text-gray-900 hover:bg-white/90"
+                  className="w-full bg-white text-foreground hover:bg-white/90"
                   onClick={scanNext}
                 >
                   Scan next

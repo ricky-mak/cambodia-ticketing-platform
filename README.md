@@ -379,7 +379,8 @@ src/
       admin/                  # event, zones, orders, staff, attendees export, ticket void/resend
       internal/               # orders/[id]/expire, orders/sweep-expired, payments/reconcile
   components/
-    ui/                       # shadcn-style primitives
+    ui/                       # shadcn-style primitives (themed via design tokens)
+    brand/                    # sail-prow motif + brand bits (see docs/design-system.md)
     admin/                    # event/zone/staff/order/attendee forms + actions
     check-in/ dev/            # scanner + dev helpers
     checkout-form, order-status-poller, reservation-countdown,

@@ -59,7 +59,8 @@ export default function CheckInLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Check-in sign in</CardTitle>
+          <div className="mb-1 h-[3px] w-10 rounded bg-gold" />
+          <CardTitle className="font-serif text-2xl">Check-in</CardTitle>
           <CardDescription>Event staff scanner</CardDescription>
         </CardHeader>
         <CardContent>

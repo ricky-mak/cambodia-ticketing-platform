@@ -34,14 +34,23 @@ export default async function CheckoutPage({
 
   return (
     <main className="mx-auto max-w-md p-6 sm:p-10">
-      <Link href="/" className="text-sm text-muted-foreground underline">
+      <Link
+        href="/"
+        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
         ← Back to event
       </Link>
-      <Card className="mt-4">
+      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {event.name}
+      </p>
+      <Card className="mt-2 shadow-sm">
         <CardHeader>
-          <CardTitle>{zone.name}</CardTitle>
-          <CardDescription>
-            {formatMoney(zone.priceMinor, zone.currency)} per seat
+          <CardTitle className="font-serif text-2xl">{zone.name}</CardTitle>
+          <CardDescription className="text-base">
+            <span className="font-bold text-rose">
+              {formatMoney(zone.priceMinor, zone.currency)}
+            </span>{" "}
+            per seat
           </CardDescription>
         </CardHeader>
         <CardContent>

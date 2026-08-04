@@ -104,7 +104,7 @@ export default function CheckInSearchPage() {
                 {busyId === r.ticketId ? "…" : "Check in"}
               </Button>
             ) : r.status === "CHECKED_IN" ? (
-              <span className="text-xs font-semibold text-green-600">
+              <span className="text-xs font-semibold text-success">
                 Checked in
               </span>
             ) : (
