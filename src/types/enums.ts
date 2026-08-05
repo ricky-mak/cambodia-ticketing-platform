@@ -19,6 +19,13 @@ export enum OrganizerStatus {
 
 export const ORGANIZER_STATUSES = Object.values(OrganizerStatus);
 
+export enum PayoutStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+}
+
+export const PAYOUT_STATUSES = Object.values(PayoutStatus);
+
 export enum StaffStatus {
   ACTIVE = "ACTIVE",
   DISABLED = "DISABLED",
@@ -106,6 +113,7 @@ export enum AuditAction {
   ORGANIZER_CREATED = "ORGANIZER_CREATED",
   ORGANIZER_UPDATED = "ORGANIZER_UPDATED",
   ORGANIZER_STATUS_CHANGED = "ORGANIZER_STATUS_CHANGED",
+  PAYOUT_RECORDED = "PAYOUT_RECORDED",
   EVENT_CREATED = "EVENT_CREATED",
   EVENT_UPDATED = "EVENT_UPDATED",
   EVENT_STATUS_CHANGED = "EVENT_STATUS_CHANGED",

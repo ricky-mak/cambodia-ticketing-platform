@@ -209,8 +209,16 @@ shippable/testable.
   state change); search/history only return the caller's organizer. A check-in
   staff scoped to an organizer can scan any of that organizer's events (scoping
   is by organizer, not a single event).
-- **Phase F — Settlement & payouts.** Per-organizer settlement report; payouts
-  table + record-payout flow; platform owed/paid view.
+- **Phase F — Settlement & payouts. ✅ DONE.** `payouts` ledger (migration
+  `1754030000000-Payouts`, **needs `yarn migration:run`**) + `settlement.service`
+  computing, **per currency**, collected (PAID orders), refunded (informational),
+  paid-out (PAID payouts) and outstanding = collected − paid-out. `/admin/settlement`
+  is scope-aware: platform admins see every organizer with an outstanding
+  balance and can **record a payout** (logging a manual transfer) at
+  `/admin/settlement/[organizerId]`; organizer admins see their own balance +
+  payout history (read-only — payouts are a platform action). API `POST
+  /api/admin/payouts` (platform only), audited `PAYOUT_RECORDED`. No platform fee
+  (net = collected); a fee model can be subtracted later without schema change.
 - **Phase G — Hardening, tests & docs.** Cross-tenant isolation tests; scope
   `audit_logs` / `check_in_logs` and their viewers; update `security.md`
   (new "Multi-tenancy & isolation" section), the implementation plan, and the
