@@ -17,6 +17,8 @@ import { OrderItem } from "@/entities/order-item.entity";
 import { Payment } from "@/entities/payment.entity";
 import { Ticket } from "@/entities/ticket.entity";
 import { CheckInLog } from "@/entities/check-in-log.entity";
+import { Organizer } from "@/entities/organizer.entity";
+import { Payout } from "@/entities/payout.entity";
 
 /**
  * A single shared TypeORM DataSource.
@@ -53,6 +55,8 @@ function createDataSource(): DataSource {
       Payment,
       Ticket,
       CheckInLog,
+      Organizer,
+      Payout,
     ],
     // Migrations are intentionally NOT registered here. They are run only by
     // the CLI (src/data-source.ts); loading the .ts migration files at app
