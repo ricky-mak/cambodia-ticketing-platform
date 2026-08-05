@@ -201,8 +201,14 @@ shippable/testable.
   back-link returns there. **Suspended-organizer gap closed**: the marketplace,
   the slug page, the checkout page, and `createReservation` all refuse a
   suspended organizer, so a stale link can't complete a purchase.
-- **Phase E — Check-in scoping.** Scope scanner/search to the organizer; handle
-  multiple events per organizer at the gate.
+- **Phase E — Check-in scoping. ✅ DONE.** Every check-in entry point now
+  carries the scanning staff member's organizer (`staff.organizerId`; NULL =
+  platform, unrestricted): `validateToken`, `checkInByToken`,
+  `checkInByTicketId`, `undoCheckIn`, `searchTickets`, `getRecentActivity`. A
+  ticket from another organizer is treated as **not found** (no info leak, no
+  state change); search/history only return the caller's organizer. A check-in
+  staff scoped to an organizer can scan any of that organizer's events (scoping
+  is by organizer, not a single event).
 - **Phase F — Settlement & payouts.** Per-organizer settlement report; payouts
   table + record-payout flow; platform owed/paid view.
 - **Phase G — Hardening, tests & docs.** Cross-tenant isolation tests; scope

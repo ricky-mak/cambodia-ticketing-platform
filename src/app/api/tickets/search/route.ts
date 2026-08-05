@@ -12,6 +12,6 @@ export async function GET(request: Request) {
   }
 
   const q = new URL(request.url).searchParams.get("q") ?? "";
-  const results = await searchTickets(q);
+  const results = await searchTickets(q, staff.organizerId);
   return NextResponse.json({ results });
 }

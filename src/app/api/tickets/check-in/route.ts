@@ -43,8 +43,13 @@ export async function POST(request: Request) {
   };
 
   const result = parsed.data.token
-    ? await checkInByToken(parsed.data.token, staff.id, ctx)
-    : await checkInByTicketId(parsed.data.ticketId!, staff.id, ctx);
+    ? await checkInByToken(parsed.data.token, staff.id, ctx, staff.organizerId)
+    : await checkInByTicketId(
+        parsed.data.ticketId!,
+        staff.id,
+        ctx,
+        staff.organizerId,
+      );
 
   return NextResponse.json(result);
 }

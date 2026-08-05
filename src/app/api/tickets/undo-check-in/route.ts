@@ -24,9 +24,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const result = await undoCheckIn(parsed.data.ticketId, staff.id, {
-    deviceInfo: request.headers.get("user-agent"),
-    ipAddress: clientIp(request),
-  });
+  const result = await undoCheckIn(
+    parsed.data.ticketId,
+    staff.id,
+    {
+      deviceInfo: request.headers.get("user-agent"),
+      ipAddress: clientIp(request),
+    },
+    staff.organizerId,
+  );
   return NextResponse.json(result);
 }

@@ -45,6 +45,7 @@ interface DisplayRow {
   status: string;
   checked_in_at: Date | null;
   event_id: string;
+  organizer_id: string;
   qr_token_id: string;
   zone_name: string;
   row_label: string;
@@ -57,7 +58,7 @@ async function fetchTicketDisplay(
 ): Promise<DisplayRow | null> {
   const rows: DisplayRow[] = await exec.query(
     `SELECT t.id, t.ticket_number, t.attendee_name, t.status, t.checked_in_at,
-            t.event_id, t.qr_token_id, z.name AS zone_name,
+            t.event_id, t.organizer_id, t.qr_token_id, z.name AS zone_name,
             s.row_label, s.seat_number
        FROM tickets t
        JOIN zones z ON z.id = t.zone_id
@@ -112,14 +113,32 @@ async function writeCheckInLog(
   );
 }
 
+/**
+ * True when a ticket belongs to a different organizer than the scanning staff
+ * member is scoped to. Platform staff (scope null) are never out of scope.
+ */
+function outOfScope(
+  rowOrganizerId: string,
+  scopeOrganizerId: string | null,
+): boolean {
+  return scopeOrganizerId !== null && rowOrganizerId !== scopeOrganizerId;
+}
+
 /** Read-only validation of a scanned token (does not check in). */
-export async function validateToken(token: string): Promise<CheckResult> {
+export async function validateToken(
+  token: string,
+  scopeOrganizerId: string | null = null,
+): Promise<CheckResult> {
   const payload = verifyTicketToken(token);
   if (!payload) return { outcome: "INVALID_SIGNATURE" };
 
   const ds = await getDataSource();
   const row = await fetchTicketDisplay(ds, payload.ticketId);
   if (!row) return { outcome: "TICKET_NOT_FOUND" };
+  // A ticket from another organizer is treated as not found (no info leak).
+  if (outOfScope(row.organizer_id, scopeOrganizerId)) {
+    return { outcome: "TICKET_NOT_FOUND" };
+  }
   if (row.qr_token_id !== payload.tokenId) return { outcome: "INVALID_SIGNATURE" };
   if (row.event_id !== payload.eventId) {
     return { outcome: "WRONG_EVENT", ticket: toDisplay(row) };
@@ -180,6 +199,7 @@ export async function checkInByToken(
   token: string,
   staffUserId: string,
   ctx: CheckInContext,
+  scopeOrganizerId: string | null = null,
 ): Promise<CheckResult> {
   const ds = await getDataSource();
   const payload = verifyTicketToken(token);
@@ -195,7 +215,7 @@ export async function checkInByToken(
   }
 
   const row = await fetchTicketDisplay(ds, payload.ticketId);
-  if (!row) {
+  if (!row || outOfScope(row.organizer_id, scopeOrganizerId)) {
     await writeCheckInLog(
       ds,
       CheckInAction.VALIDATION_FAILED,
@@ -226,8 +246,15 @@ export async function checkInByTicketId(
   ticketId: string,
   staffUserId: string,
   ctx: CheckInContext,
+  scopeOrganizerId: string | null = null,
 ): Promise<CheckResult> {
   const ds = await getDataSource();
+  // Scope guard before any state change: a ticket outside the caller's
+  // organizer is treated as not found.
+  const row = await fetchTicketDisplay(ds, ticketId);
+  if (!row || outOfScope(row.organizer_id, scopeOrganizerId)) {
+    return { outcome: "TICKET_NOT_FOUND" };
+  }
   return performCheckIn(ds, ticketId, staffUserId, ctx);
 }
 
@@ -236,8 +263,14 @@ export async function undoCheckIn(
   ticketId: string,
   staffUserId: string,
   ctx: CheckInContext,
+  scopeOrganizerId: string | null = null,
 ): Promise<{ ok: boolean }> {
   const ds = await getDataSource();
+  // Scope guard: only undo tickets within the caller's organizer.
+  const row = await fetchTicketDisplay(ds, ticketId);
+  if (!row || outOfScope(row.organizer_id, scopeOrganizerId)) {
+    return { ok: false };
+  }
   // Revert and log atomically, mirroring performCheckIn.
   return ds.transaction(async (manager: EntityManager) => {
     const result = await manager.getRepository<Ticket>("Ticket").update(
@@ -270,7 +303,10 @@ export interface SearchRow {
   checkedInAt: string | null;
 }
 
-export async function searchTickets(query: string): Promise<SearchRow[]> {
+export async function searchTickets(
+  query: string,
+  scopeOrganizerId: string | null = null,
+): Promise<SearchRow[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const ds = await getDataSource();
@@ -298,13 +334,14 @@ export async function searchTickets(query: string): Promise<SearchRow[]> {
        JOIN zones z ON z.id = t.zone_id
        JOIN seats s ON s.id = t.seat_id
        JOIN orders o ON o.id = t.order_id
-      WHERE t.ticket_number ILIKE $1
-         OR t.attendee_name ILIKE $1
-         OR t.attendee_email ILIKE $1
-         OR o.order_number ILIKE $1
+      WHERE ($2::uuid IS NULL OR t.organizer_id = $2)
+        AND (t.ticket_number ILIKE $1
+             OR t.attendee_name ILIKE $1
+             OR t.attendee_email ILIKE $1
+             OR o.order_number ILIKE $1)
       ORDER BY t.attendee_name
       LIMIT 25`,
-    [like],
+    [like, scopeOrganizerId],
   );
   return rows.map((r) => ({
     ticketId: r.id,
@@ -330,7 +367,10 @@ export interface ActivityRow {
   staffName: string | null;
 }
 
-export async function getRecentActivity(limit = 50): Promise<ActivityRow[]> {
+export async function getRecentActivity(
+  limit = 50,
+  scopeOrganizerId: string | null = null,
+): Promise<ActivityRow[]> {
   const ds = await getDataSource();
   const rows: Array<{
     action: string;
@@ -341,6 +381,8 @@ export async function getRecentActivity(limit = 50): Promise<ActivityRow[]> {
     seat_number: number | null;
     staff_name: string | null;
   }> = await ds.query(
+    // When scoped to an organizer, only show activity for that organizer's
+    // tickets (rows with no ticket, e.g. failed scans, are platform-only).
     `SELECT l.action, l.created_at, t.ticket_number, t.attendee_name,
             z.name AS zone_name, s.row_label, s.seat_number, u.name AS staff_name
        FROM check_in_logs l
@@ -348,9 +390,10 @@ export async function getRecentActivity(limit = 50): Promise<ActivityRow[]> {
        LEFT JOIN zones z ON z.id = t.zone_id
        LEFT JOIN seats s ON s.id = t.seat_id
        LEFT JOIN staff_users u ON u.id = l.staff_user_id
+      WHERE $2::uuid IS NULL OR t.organizer_id = $2
       ORDER BY l.created_at DESC
       LIMIT $1`,
-    [limit],
+    [limit, scopeOrganizerId],
   );
   return rows.map((r) => ({
     action: r.action,

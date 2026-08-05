@@ -1,3 +1,4 @@
+import { getCheckInStaff } from "@/lib/api-auth";
 import { getRecentActivity } from "@/services/check-in.service";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,8 @@ function formatTime(iso: string): string {
 }
 
 export default async function CheckInHistoryPage() {
-  const activity = await getRecentActivity(50);
+  const staff = await getCheckInStaff();
+  const activity = await getRecentActivity(50, staff?.organizerId ?? null);
 
   return (
     <div className="space-y-4">

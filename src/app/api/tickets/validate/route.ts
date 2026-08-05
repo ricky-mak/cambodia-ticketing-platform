@@ -27,6 +27,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const result = await validateToken(parsed.data.token);
+  const result = await validateToken(parsed.data.token, staff.organizerId);
   return NextResponse.json(result);
 }
