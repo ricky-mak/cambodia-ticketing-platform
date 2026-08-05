@@ -193,9 +193,14 @@ shippable/testable.
   admins** for now (see Phase G — needs an `organizer_id` column to be
   per-organizer). Deferred to Phase D: the public site still shows a single
   published event and doesn't yet filter out suspended organizers.
-- **Phase D — Public marketplace.** `/` lists all published events;
-  `/events/[slug]` detail; wire checkout from the event page; retire
-  `getPrimaryEvent` as the public entry point.
+- **Phase D — Public marketplace. ✅ DONE.** `/` is now a marketplace grid of
+  all PUBLISHED events owned by ACTIVE organizers
+  (`listPublishedEventsForMarketplace`); `/events/[slug]` is the per-event detail
+  (hero + zones + buy, via `getPublishedEventBySlug`, which 404s for unpublished
+  events or suspended organizers). Checkout starts from the event page and its
+  back-link returns there. **Suspended-organizer gap closed**: the marketplace,
+  the slug page, the checkout page, and `createReservation` all refuse a
+  suspended organizer, so a stale link can't complete a purchase.
 - **Phase E — Check-in scoping.** Scope scanner/search to the organizer; handle
   multiple events per organizer at the gate.
 - **Phase F — Settlement & payouts.** Per-organizer settlement report; payouts

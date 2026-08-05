@@ -10,9 +10,10 @@ import {
 import { CheckoutForm } from "@/components/checkout-form";
 import { getZoneById, countAvailableSeats } from "@/services/zone.service";
 import { getEventById } from "@/services/event.service";
+import { getOrganizerById } from "@/services/organizer.service";
 import { isSalesOpen } from "@/lib/sales";
 import { formatMoney } from "@/lib/money";
-import { ZoneStatus } from "@/types/enums";
+import { OrganizerStatus, ZoneStatus } from "@/types/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,10 @@ export default async function CheckoutPage({
   const event = await getEventById(zone.eventId);
   if (!event) notFound();
 
+  // Hide checkout for a suspended organizer's events.
+  const organizer = await getOrganizerById(event.organizerId);
+  if (!organizer || organizer.status !== OrganizerStatus.ACTIVE) notFound();
+
   const salesOpen = isSalesOpen(event);
   const available = await countAvailableSeats(zone.id);
   const maxQuantity = Math.min(zone.maxPerOrder, available);
@@ -35,7 +40,7 @@ export default async function CheckoutPage({
   return (
     <main className="mx-auto max-w-md p-6 sm:p-10">
       <Link
-        href="/"
+        href={`/events/${event.slug}`}
         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         ← Back to event

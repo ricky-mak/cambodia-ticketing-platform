@@ -4,7 +4,8 @@ import { OrderItem } from "@/entities/order-item.entity";
 import { Seat } from "@/entities/seat.entity";
 import { Zone } from "@/entities/zone.entity";
 import { Event } from "@/entities/event.entity";
-import { OrderStatus, ZoneStatus } from "@/types/enums";
+import { Organizer } from "@/entities/organizer.entity";
+import { OrderStatus, OrganizerStatus, ZoneStatus } from "@/types/enums";
 import { chooseContiguousSeats, type LockedSeat } from "@/lib/seat-allocation";
 import { generateOrderNumber, generatePublicToken } from "@/lib/order-codes";
 import { isSalesOpen } from "@/lib/sales";
@@ -85,6 +86,14 @@ export async function createReservation(
     where: { id: zone.eventId },
   });
   if (!event || !isSalesOpen(event)) {
+    throw new ReservationError("SALES_CLOSED", "Ticket sales are not open.");
+  }
+
+  // A suspended organizer cannot sell — refuse even if a stale link is used.
+  const organizer = await (await getRepo(Organizer)).findOne({
+    where: { id: event.organizerId },
+  });
+  if (!organizer || organizer.status !== OrganizerStatus.ACTIVE) {
     throw new ReservationError("SALES_CLOSED", "Ticket sales are not open.");
   }
 

@@ -1,6 +1,7 @@
-import { getRepo } from "@/lib/database";
+import { getDataSource, getRepo } from "@/lib/database";
 import { Event } from "@/entities/event.entity";
-import { EventStatus } from "@/types/enums";
+import { Organizer } from "@/entities/organizer.entity";
+import { EventStatus, OrganizerStatus } from "@/types/enums";
 import { getDefaultOrganizerId } from "@/services/organizer.service";
 
 export interface EventInput {
@@ -56,6 +57,68 @@ export async function listEventsForScope(
 export async function getPublishedEvent(): Promise<Event | null> {
   const repo = await getRepo(Event);
   return repo.findOne({ where: { status: EventStatus.PUBLISHED } });
+}
+
+export interface MarketplaceEvent {
+  id: string;
+  name: string;
+  slug: string;
+  startsAt: Date | null;
+  venueName: string | null;
+  heroImageUrl: string | null;
+}
+
+/**
+ * All events on sale to the public: PUBLISHED and owned by an ACTIVE organizer
+ * (a suspended organizer's events disappear from the marketplace). Ordered by
+ * start date.
+ */
+export async function listPublishedEventsForMarketplace(): Promise<
+  MarketplaceEvent[]
+> {
+  const ds = await getDataSource();
+  const rows: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    starts_at: Date | null;
+    venue_name: string | null;
+    hero_image_url: string | null;
+  }> = await ds.query(
+    `SELECT e.id, e.name, e.slug, e.starts_at, e.venue_name, e.hero_image_url
+       FROM events e
+       JOIN organizers o ON o.id = e.organizer_id
+      WHERE e.status = 'PUBLISHED' AND o.status = 'ACTIVE'
+      ORDER BY e.starts_at ASC NULLS LAST, e.created_at ASC`,
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    startsAt: r.starts_at ? new Date(r.starts_at) : null,
+    venueName: r.venue_name,
+    heroImageUrl: r.hero_image_url,
+  }));
+}
+
+/**
+ * A single public event by slug — only if PUBLISHED and its organizer is
+ * ACTIVE. Returns null otherwise (so suspended organizers / unpublished events
+ * 404 on the public site).
+ */
+export async function getPublishedEventBySlug(
+  slug: string,
+): Promise<Event | null> {
+  const repo = await getRepo(Event);
+  const event = await repo.findOne({
+    where: { slug, status: EventStatus.PUBLISHED },
+  });
+  if (!event) return null;
+  const organizer = await (await getRepo(Organizer)).findOne({
+    where: { id: event.organizerId },
+  });
+  if (!organizer || organizer.status !== OrganizerStatus.ACTIVE) return null;
+  return event;
 }
 
 export async function createEvent(input: EventInput): Promise<Event> {
