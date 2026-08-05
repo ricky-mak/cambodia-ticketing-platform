@@ -1,5 +1,6 @@
 import { getCheckInStaff } from "@/lib/api-auth";
 import { getRecentActivity } from "@/services/check-in.service";
+import { APP_TZ, APP_TZ_LABEL } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,8 @@ function formatTime(iso: string): string {
     new Intl.DateTimeFormat("en-US", {
       dateStyle: "short",
       timeStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(iso)) + " UTC"
+      timeZone: APP_TZ,
+    }).format(new Date(iso)) + ` ${APP_TZ_LABEL}`
   );
 }
 

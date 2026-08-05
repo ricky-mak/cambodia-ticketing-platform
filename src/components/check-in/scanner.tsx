@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { APP_TZ, APP_TZ_LABEL } from "@/lib/datetime";
 
 interface TicketDisplay {
   ticketNumber: string;
@@ -257,9 +258,9 @@ export function Scanner() {
                       at{" "}
                       {new Intl.DateTimeFormat("en-US", {
                         timeStyle: "medium",
-                        timeZone: "UTC",
+                        timeZone: APP_TZ,
                       }).format(new Date(result.ticket.checkedInAt))}{" "}
-                      UTC
+                      {APP_TZ_LABEL}
                     </p>
                   )}
               </div>

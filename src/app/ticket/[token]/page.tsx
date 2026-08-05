@@ -2,19 +2,13 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { SailMotif } from "@/components/brand/sail-motif";
 import { getTicketByPublicToken } from "@/services/ticket.service";
+import { formatIct } from "@/lib/datetime";
 import { TicketStatus } from "@/types/enums";
 
 export const dynamic = "force-dynamic";
 
 function formatUtc(date: Date | null): string | null {
-  if (!date) return null;
-  return (
-    new Intl.DateTimeFormat("en-US", {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(date) + " (UTC)"
-  );
+  return formatIct(date);
 }
 
 export default async function TicketPage({

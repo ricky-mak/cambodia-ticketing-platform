@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/money";
+import { APP_TZ, APP_TZ_LABEL } from "@/lib/datetime";
 
 export interface OrderConfirmationData {
   baseUrl: string;
@@ -37,8 +38,8 @@ function formatDate(iso: string | null): string {
     new Intl.DateTimeFormat("en-US", {
       dateStyle: "full",
       timeStyle: "short",
-      timeZone: "UTC",
-    }).format(new Date(iso)) + " (UTC)"
+      timeZone: APP_TZ,
+    }).format(new Date(iso)) + ` ${APP_TZ_LABEL}`
   );
 }
 

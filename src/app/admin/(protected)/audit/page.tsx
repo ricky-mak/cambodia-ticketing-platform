@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminContext } from "@/lib/admin-context";
 import { listAuditLogs } from "@/services/audit.service";
+import { APP_TZ, APP_TZ_LABEL } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,8 @@ function formatTime(iso: string): string {
     new Intl.DateTimeFormat("en-US", {
       dateStyle: "short",
       timeStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(iso)) + " UTC"
+      timeZone: APP_TZ,
+    }).format(new Date(iso)) + ` ${APP_TZ_LABEL}`
   );
 }
 

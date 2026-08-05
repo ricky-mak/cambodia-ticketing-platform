@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listPublishedEventsForMarketplace } from "@/services/event.service";
 import { SailMotif } from "@/components/brand/sail-motif";
 import { Card, CardContent } from "@/components/ui/card";
+import { APP_TZ } from "@/lib/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ function formatDate(date: Date | null): string | null {
   if (!date) return null;
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "full",
-    timeZone: "UTC",
+    timeZone: APP_TZ,
   }).format(date);
 }
 

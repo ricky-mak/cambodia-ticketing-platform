@@ -124,16 +124,16 @@ export function EventForm({ initial }: { initial: EventFormValues }) {
         <Field label="Venue address">
           <Input {...register("venueAddress")} />
         </Field>
-        <Field label="Starts at (UTC)">
+        <Field label="Starts at (ICT)">
           <Input type="datetime-local" {...register("startsAt")} />
         </Field>
-        <Field label="Ends at (UTC)">
+        <Field label="Ends at (ICT)">
           <Input type="datetime-local" {...register("endsAt")} />
         </Field>
-        <Field label="Sales start (UTC)">
+        <Field label="Sales start (ICT)">
           <Input type="datetime-local" {...register("salesStartAt")} />
         </Field>
-        <Field label="Sales end (UTC)">
+        <Field label="Sales end (ICT)">
           <Input type="datetime-local" {...register("salesEndAt")} />
         </Field>
         <Field label="Seat hold (minutes)">
