@@ -83,14 +83,24 @@ export default async function EventDetailPage({
       </section>
 
       <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 sm:px-10">
-        {event.heroImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={event.heroImageUrl}
-            alt={event.name}
-            className="w-full rounded-xl border object-cover shadow-sm"
-          />
-        )}
+        {event.heroImageUrl &&
+          (event.heroImageFull ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.heroImageUrl}
+              alt={event.name}
+              className="w-full rounded-xl border object-cover shadow-sm"
+            />
+          ) : (
+            <div className="aspect-video w-full overflow-hidden rounded-xl border shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={event.heroImageUrl}
+                alt={event.name}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ))}
 
         {event.description && (
           <p className="max-w-2xl whitespace-pre-line leading-relaxed text-foreground/90">

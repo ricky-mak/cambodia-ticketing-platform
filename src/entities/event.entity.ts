@@ -37,6 +37,12 @@ export class Event {
   @Column({ name: "hero_image_url", type: "text", nullable: true })
   heroImageUrl!: string | null;
 
+  // When true, the event page shows the hero image at its natural aspect ratio;
+  // when false (default) it's cropped to a 16:9 banner. The marketplace card
+  // always crops regardless.
+  @Column({ name: "hero_image_full", type: "boolean", default: false })
+  heroImageFull!: boolean;
+
   @Column({ name: "contact_email", type: "varchar", length: 320, nullable: true })
   contactEmail!: string | null;
 

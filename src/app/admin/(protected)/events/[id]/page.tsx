@@ -37,6 +37,7 @@ export default async function EventEditPage({
     venueAddress: event.venueAddress ?? "",
     description: event.description ?? "",
     heroImageUrl: event.heroImageUrl ?? "",
+    heroImageFull: event.heroImageFull,
     contactEmail: event.contactEmail ?? "",
     contactPhone: event.contactPhone ?? "",
     startsAt: toDateTimeLocal(event.startsAt),

@@ -20,6 +20,7 @@ const BLANK: EventFormValues = {
   venueAddress: "",
   description: "",
   heroImageUrl: "",
+  heroImageFull: false,
   contactEmail: "",
   contactPhone: "",
   startsAt: "",

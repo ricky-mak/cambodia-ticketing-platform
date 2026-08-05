@@ -388,7 +388,7 @@ src/
   entities/                   # Event, Zone, Seat, Order, OrderItem, Payment,
                               # Ticket, StaffUser, Session, AuditLog, CheckInLog,
                               # Organizer, Payout (multi-tenant)
-  migrations/                 # 12 migrations, timestamp-ordered (InitAuth -> Payouts)
+  migrations/                 # 13 migrations, timestamp-ordered (InitAuth -> EventHeroImageFull)
   services/                   # auth, event, zone, order, payment, ticket, check-in,
                               # staff, audit, admin-stats/-order/-attendee, cloud-task,
                               # email, organizer, settlement (multi-tenant)

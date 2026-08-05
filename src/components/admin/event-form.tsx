@@ -17,6 +17,7 @@ export interface EventFormValues {
   venueAddress: string;
   description: string;
   heroImageUrl: string;
+  heroImageFull: boolean;
   contactEmail: string;
   contactPhone: string;
   startsAt: string;
@@ -106,6 +107,17 @@ export function EventForm({ initial }: { initial: EventFormValues }) {
         <Field label="Hero image URL">
           <Input {...register("heroImageUrl")} placeholder="https://…" />
         </Field>
+        <div className="space-y-1.5 sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              {...register("heroImageFull")}
+            />
+            Show hero image uncropped on the event page (default crops to a 16:9
+            banner)
+          </label>
+        </div>
         <Field label="Venue name">
           <Input {...register("venueName")} />
         </Field>

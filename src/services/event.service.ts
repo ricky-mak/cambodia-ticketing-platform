@@ -15,6 +15,7 @@ export interface EventInput {
   venueName?: string | null;
   venueAddress?: string | null;
   heroImageUrl?: string | null;
+  heroImageFull?: boolean;
   contactEmail?: string | null;
   contactPhone?: string | null;
   refundPolicy?: string | null;
