@@ -1,16 +1,14 @@
 import { cookies } from "next/headers";
 import { getScopedAdminStaff } from "@/lib/api-auth";
 import { listEventsForScope, getEventById } from "@/services/event.service";
+import { ACTIVE_EVENT_COOKIE } from "@/lib/active-event-cookie";
 import type { Event } from "@/entities/event.entity";
 import type { StaffUser } from "@/entities/staff-user.entity";
 import type { TenantScope } from "@/lib/tenant";
 
-/**
- * Cookie remembering which event the admin is currently working on. It's only a
- * hint: the server always re-validates that the chosen event is within the
- * caller's tenant scope, so a tampered cookie can never widen access.
- */
-export const ACTIVE_EVENT_COOKIE = "admin_active_event";
+// The active-event cookie name lives in its own module (see import above) so
+// client components can use it without importing this server-only file.
+export { ACTIVE_EVENT_COOKIE };
 
 export interface EventOption {
   id: string;

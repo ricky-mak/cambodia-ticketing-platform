@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ACTIVE_EVENT_COOKIE } from "@/lib/admin-context";
+import { ACTIVE_EVENT_COOKIE } from "@/lib/active-event-cookie";
 
 interface Props {
   events: { id: string; name: string }[];
