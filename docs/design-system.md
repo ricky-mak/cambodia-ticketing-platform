@@ -5,9 +5,14 @@ indigo foundation on a clean near-white base, warmed by lotus rose, jade and
 gold — drawn from Morodok Techo National Stadium (the twin sail-prow masts that
 allude to the *sampeah* gesture) and the Rumduol, Cambodia's national flower.
 
-Admin screens intentionally inherit the same tokens but are not the focus of
-this pass — they're restyled during the multi-tenant work (see
-`docs/multi-tenant-plan.md`).
+Covers the buyer-facing site, the check-in scanner, and the admin area. The
+admin uses a **left-sidebar shell** (`src/components/admin/admin-sidebar.tsx`):
+a deep-indigo (`brand-deep`) sidebar with the sail motif, `lucide-react` icons,
+a gold active-state marker, and platform-only items in a separate "Platform"
+group; it collapses to a horizontally scrollable nav strip on mobile. Status
+values render through a shared `StatusPill` (`src/components/admin/status-pill.tsx`):
+jade = paid/valid/checked-in, gold = pending, rose = refunded, muted =
+cancelled/expired/void, red = failed.
 
 ## Colour tokens
 

@@ -11,16 +11,29 @@ function Metric({
   label,
   value,
   hint,
+  accent,
 }: {
   label: string;
   value: string;
   hint?: string;
+  accent?: "rose" | "jade";
 }) {
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardContent className="pt-6">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
+        <p
+          className={
+            "mt-1 text-2xl font-bold tracking-tight" +
+            (accent === "rose"
+              ? " text-rose"
+              : accent === "jade"
+                ? " text-success"
+                : "")
+          }
+        >
+          {value}
+        </p>
         {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       </CardContent>
     </Card>
@@ -63,12 +76,14 @@ export default async function DashboardPage() {
           label="Gross revenue"
           value={formatMoney(m.grossRevenueMinor, m.currency)}
           hint={`${m.paidOrders} paid orders`}
+          accent="rose"
         />
         <Metric label="Tickets sold" value={m.ticketsSold.toLocaleString()} />
         <Metric
           label="Checked in"
           value={`${m.checkedIn.toLocaleString()} (${m.checkInPct}%)`}
           hint={`of ${m.totalAttendees.toLocaleString()} attendees`}
+          accent="jade"
         />
         <Metric
           label="Seats remaining"

@@ -8,6 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AttendeeActions } from "@/components/admin/attendee-actions";
+import { StatusPill } from "@/components/admin/status-pill";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { listZonesWithCounts } from "@/services/zone.service";
@@ -124,7 +125,9 @@ export default async function AttendeesPage({
                         {a.ticketNumber}
                       </Link>
                     </td>
-                    <td className="py-2 pr-4">{a.status}</td>
+                    <td className="py-2 pr-4">
+                      <StatusPill status={a.status} />
+                    </td>
                     <td className="py-2 pr-4">
                       <AttendeeActions ticketId={a.ticketId} status={a.status} />
                     </td>

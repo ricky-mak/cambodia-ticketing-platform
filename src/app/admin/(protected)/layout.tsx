@@ -1,22 +1,27 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { LogoutButton } from "@/components/logout-button";
 import { EventSelector } from "@/components/admin/event-selector";
+import {
+  AdminSidebar,
+  type NavGroup,
+} from "@/components/admin/admin-sidebar";
 
-const NAV = [
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/attendees", label: "Attendees" },
-  { href: "/admin/events", label: "Events" },
-  { href: "/admin/zones", label: "Zones" },
-  { href: "/admin/settlement", label: "Settlement" },
-  { href: "/admin/staff", label: "Staff" },
-  { href: "/admin/audit", label: "Audit" },
+const MAIN_ITEMS = [
+  { href: "/admin/dashboard", label: "Dashboard", icon: "dashboard" },
+  { href: "/admin/orders", label: "Orders", icon: "orders" },
+  { href: "/admin/attendees", label: "Attendees", icon: "attendees" },
+  { href: "/admin/events", label: "Events", icon: "events" },
+  { href: "/admin/zones", label: "Zones", icon: "zones" },
+  { href: "/admin/settlement", label: "Settlement", icon: "settlement" },
+  { href: "/admin/staff", label: "Staff", icon: "staff" },
+  { href: "/admin/audit", label: "Audit", icon: "audit" },
 ];
 
-// Platform-admin-only entries.
-const PLATFORM_NAV = [{ href: "/admin/organizers", label: "Organizers" }];
+// Platform-admin-only.
+const PLATFORM_ITEMS = [
+  { href: "/admin/organizers", label: "Organizers", icon: "organizers" },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -33,37 +38,24 @@ export default async function AdminProtectedLayout({
   }
 
   const { staff, scope, events, activeEvent } = ctx;
-  const nav = scope.isPlatform ? [...NAV, ...PLATFORM_NAV] : NAV;
+  const groups: NavGroup[] = [{ items: MAIN_ITEMS }];
+  if (scope.isPlatform) {
+    groups.push({ label: "Platform", items: PLATFORM_ITEMS });
+  }
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-background px-6 py-3">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="font-semibold">Event Ticketing — Admin</div>
-          <nav className="flex items-center gap-4 text-sm">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <EventSelector
-            events={events}
-            activeEventId={activeEvent?.id ?? null}
-          />
-          <span className="text-muted-foreground">
+    <div className="min-h-screen bg-muted/20 md:flex">
+      <AdminSidebar groups={groups} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-end gap-4 border-b bg-background px-4 py-3 sm:px-6">
+          <EventSelector events={events} activeEventId={activeEvent?.id ?? null} />
+          <span className="hidden text-sm text-muted-foreground sm:inline">
             {staff.name} · {staff.role}
           </span>
           <LogoutButton />
-        </div>
-      </header>
-      <div className="p-6">{children}</div>
+        </header>
+        <main className="p-4 sm:p-6">{children}</main>
+      </div>
     </div>
   );
 }

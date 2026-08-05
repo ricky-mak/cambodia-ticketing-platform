@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/admin/status-pill";
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { searchOrders } from "@/services/admin-order.service";
@@ -88,7 +89,9 @@ export default async function OrdersPage({
                         {o.customerEmail}
                       </div>
                     </td>
-                    <td className="py-2 pr-4">{o.status}</td>
+                    <td className="py-2 pr-4">
+                      <StatusPill status={o.status} />
+                    </td>
                     <td className="py-2 pr-4">{o.seatCount}</td>
                     <td className="py-2 pr-4">
                       {formatMoney(o.totalMinor, o.currency)}
