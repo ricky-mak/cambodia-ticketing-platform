@@ -12,13 +12,11 @@ const NAV = [
   { href: "/admin/zones", label: "Zones" },
   { href: "/admin/settlement", label: "Settlement" },
   { href: "/admin/staff", label: "Staff" },
+  { href: "/admin/audit", label: "Audit" },
 ];
 
 // Platform-admin-only entries.
-const PLATFORM_NAV = [
-  { href: "/admin/organizers", label: "Organizers" },
-  { href: "/admin/audit", label: "Audit" },
-];
+const PLATFORM_NAV = [{ href: "/admin/organizers", label: "Organizers" }];
 
 export const dynamic = "force-dynamic";
 

@@ -36,6 +36,47 @@ hardening. (Rate limiting and security headers are §3 and §4.)
   (`crypto.timingSafeEqual`), so a timing side-channel can't be used to recover
   the secret.
 
+## 2b. Multi-tenancy & tenant isolation
+
+The platform hosts events for multiple third-party **organizers**; isolation
+between them is a security property.
+
+- **Tenant model:** every tenant-owned row carries an `organizer_id`
+  (`events`, `orders`, `tickets`, `staff_users`, `payouts`). A staff member's
+  `organizer_id` is the tenant boundary — **`NULL` = platform staff** (the
+  operator), a value = that organizer's staff. Roles (`ADMIN` / `MANAGER` /
+  `CHECK_IN_STAFF`) are interpreted *within* that scope.
+- **One choke point:** `src/lib/tenant.ts` — `getTenantScope(staff)` derives the
+  scope; `inScope(scope, organizerId)` is the single ownership test (platform
+  sees all; an organizer only its own). These pure helpers are unit-tested
+  (`tests/tenant.test.ts`), including the cross-tenant-denied cases.
+- **Where it's enforced:**
+  - Admin data pages resolve an **active event** that is re-validated to be in
+    scope (`src/lib/admin-context.ts`), so dashboard/orders/attendees/zones only
+    ever read an event the caller may see.
+  - Admin mutation routes (event, event-status, zones-create, attendees-export,
+    order cancel/refund/resend, ticket void/resend) load the target's
+    `organizer_id` and reject out-of-scope requests with **403**.
+  - Staff management is organizer-scoped: an organizer admin only lists/creates/
+    modifies staff in their own organizer; new staff inherit the creator's
+    organizer.
+  - **Check-in** carries the scanner's `organizer_id`; a ticket from another
+    organizer is reported as *not found* (no info leak, no state change), and
+    search/history are organizer-filtered.
+  - The **public marketplace** and checkout only surface events of **ACTIVE**
+    organizers; suspending an organizer also blocks its staff from
+    authenticating (`getCurrentStaff`) and refuses new reservations.
+  - Platform-only surfaces (managing organizers) require `getPlatformAdmin`
+    (ADMIN + `organizer_id` NULL).
+
+> **Limitation:** the audit-log viewer is scoped by the *acting staff member's*
+> organizer (`audit_logs` has no `organizer_id` column yet), so an organizer
+> sees their own staff's actions but not platform actions taken on their behalf.
+> Adding `organizer_id` to `audit_logs` would make this exact. Automated
+> isolation coverage today is the pure-helper unit tests plus the manual
+> checklist in `docs/multi-tenant-plan.md`; full DB-level integration tests need
+> a test database harness (future).
+
 ## 3. Rate limiting
 
 `src/lib/rate-limit.ts` — a fixed-window limiter returning **HTTP 429** with a

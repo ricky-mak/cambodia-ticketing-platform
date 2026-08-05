@@ -386,10 +386,12 @@ src/
     checkout-form, order-status-poller, reservation-countdown,
     lockout-message, logout-button
   entities/                   # Event, Zone, Seat, Order, OrderItem, Payment,
-                              # Ticket, StaffUser, Session, AuditLog, CheckInLog
-  migrations/                 # 10 migrations, timestamp-ordered (InitAuth -> SearchTrigramIndexes)
+                              # Ticket, StaffUser, Session, AuditLog, CheckInLog,
+                              # Organizer, Payout (multi-tenant)
+  migrations/                 # 12 migrations, timestamp-ordered (InitAuth -> Payouts)
   services/                   # auth, event, zone, order, payment, ticket, check-in,
-                              # staff, audit, admin-stats/-order/-attendee, cloud-task, email
+                              # staff, audit, admin-stats/-order/-attendee, cloud-task,
+                              # email, organizer, settlement (multi-tenant)
     payments/                 # provider abstraction: fake + payway
     email/                    # provider abstraction: fake + resend
   lib/

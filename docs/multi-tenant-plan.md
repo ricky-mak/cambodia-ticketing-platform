@@ -219,10 +219,37 @@ shippable/testable.
   payout history (read-only — payouts are a platform action). API `POST
   /api/admin/payouts` (platform only), audited `PAYOUT_RECORDED`. No platform fee
   (net = collected); a fee model can be subtracted later without schema change.
-- **Phase G — Hardening, tests & docs.** Cross-tenant isolation tests; scope
-  `audit_logs` / `check_in_logs` and their viewers; update `security.md`
-  (new "Multi-tenancy & isolation" section), the implementation plan, and the
-  runbook.
+- **Phase G — Hardening, tests & docs. ✅ DONE.** Unit tests for the isolation
+  choke point (`tests/tenant.test.ts`: `getTenantScope` / `inScope` /
+  `resolveOrganizerFilter` / `isPlatformAdmin`, incl. cross-tenant-denied
+  cases — all pass). Audit viewer re-opened to organizer admins, scoped by the
+  acting staff member's organizer (`listAuditLogs(limit, organizerId)`); "Audit"
+  is back in the shared nav. `security.md` gained a "Multi-tenancy & tenant
+  isolation" section. **Deviations from the original plan, by design:** (1) the
+  audit log is scoped via the actor's organizer rather than a new
+  `audit_logs.organizer_id` column (lower-risk; column upgrade noted as future);
+  (2) automated coverage is the pure-helper unit tests + the manual checklist
+  below — full DB-level integration isolation tests need a test-database harness
+  (future).
+
+### Manual cross-tenant isolation checklist
+
+With two organizers (A, B) each with an admin + an event, verify as organizer
+A's admin:
+
+- Event selector and `/admin/events` list **only** A's events; opening B's
+  event id at `/admin/events/{B}` 404s.
+- Dashboard / orders / attendees / zones show only A's active event's data.
+- Hitting an order/ticket mutation for B's order id returns **403** (try
+  `POST /api/admin/orders/{B-order}/cancel`).
+- `/admin/staff` lists only A's staff; managing B's staff id returns 403.
+- `/admin/settlement` shows only A's balance; no record-payout form.
+- `/admin/organizers` and `/admin/audit` (platform actions) are absent from
+  nav; audit shows only A's staff actions.
+- Check-in scanning a ticket belonging to B reports "not found"; search returns
+  only A's attendees.
+- Suspend organizer A (as platform admin): A's admin can no longer sign in, A's
+  events vanish from the public marketplace, and checkout for A 404s.
 
 Rough effort: Phase A is the largest single chunk (foundation + backfill +
 isolation); B–F are moderate and mostly reuse existing screens/queries; G is

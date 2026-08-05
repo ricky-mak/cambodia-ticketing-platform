@@ -47,7 +47,21 @@ export interface AuditLogRow {
   createdAt: string;
 }
 
-export async function listAuditLogs(limit = 100): Promise<AuditLogRow[]> {
+/**
+ * Recent audit entries. When `scopeOrganizerId` is set (an organizer admin),
+ * only entries whose actor belongs to that organizer are returned — so an
+ * organizer sees their own staff's actions but not other tenants' or the
+ * platform's. Platform admins pass null and see everything.
+ *
+ * Note: scoping is by the acting staff member's organizer (audit_logs has no
+ * organizer_id of its own yet), so platform-staff actions on an organizer and
+ * system rows with no actor are not shown to that organizer. Adding an
+ * organizer_id column to audit_logs would make this exact; deferred.
+ */
+export async function listAuditLogs(
+  limit = 100,
+  scopeOrganizerId: string | null = null,
+): Promise<AuditLogRow[]> {
   const ds = await getDataSource();
   const rows: Array<{
     action: string;
@@ -59,9 +73,10 @@ export async function listAuditLogs(limit = 100): Promise<AuditLogRow[]> {
     `SELECT a.action, a.entity_type, a.entity_id, u.name AS staff_name, a.created_at
        FROM audit_logs a
        LEFT JOIN staff_users u ON u.id = a.staff_user_id
+      WHERE $2::uuid IS NULL OR u.organizer_id = $2
       ORDER BY a.created_at DESC
       LIMIT $1`,
-    [limit],
+    [limit, scopeOrganizerId],
   );
   return rows.map((r) => ({
     action: r.action,
