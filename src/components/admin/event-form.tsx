@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,15 @@ export interface EventFormValues {
   terms: string;
 }
 
+/** Turn a title into a URL-safe slug matching the API's ^[a-z0-9-]+$ rule. */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function EventForm({ initial }: { initial: EventFormValues }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -38,8 +47,22 @@ export function EventForm({ initial }: { initial: EventFormValues }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { isSubmitting },
   } = useForm<EventFormValues>({ defaultValues: initial });
+
+  // Auto-fill the slug from the name for NEW events, until the user edits the
+  // slug themselves. Editing an existing event never rewrites its slug.
+  const [slugEdited, setSlugEdited] = useState(Boolean(initial.id));
+  const name = watch("name");
+  useEffect(() => {
+    if (!slugEdited) {
+      setValue("slug", slugify(name ?? ""));
+    }
+  }, [name, slugEdited, setValue]);
+
+  const slugField = register("slug", { required: true });
 
   async function onSubmit(values: EventFormValues) {
     setMessage(null);
@@ -67,7 +90,15 @@ export function EventForm({ initial }: { initial: EventFormValues }) {
           <Input {...register("name", { required: true })} />
         </Field>
         <Field label="Slug (lowercase, hyphens)">
-          <Input {...register("slug", { required: true })} placeholder="my-event-2026" />
+          <Input
+            {...slugField}
+            onChange={(e) => {
+              slugField.onChange(e);
+              // Resume auto-fill if they clear it; otherwise it's manual now.
+              setSlugEdited(e.target.value.trim() !== "");
+            }}
+            placeholder="my-event-2026"
+          />
         </Field>
         <Field label="Currency">
           <Input {...register("currency")} maxLength={3} placeholder="USD" />
